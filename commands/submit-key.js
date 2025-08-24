@@ -48,7 +48,7 @@ function validateRSAKey(publicKeyString) {
     }
 }
 
-// Initialize and setup git repository
+// Initialize and setup git repository with fresh clone strategy
 async function initializeGitRepo() {
     try {
         console.log('🔄 Initializing Git repository...');
@@ -58,18 +58,22 @@ async function initializeGitRepo() {
         const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
         console.log('🔑 GitHub token available:', token ? 'YES' : 'NO');
         
-        if (!fs.existsSync(REPO_PATH)) {
-            console.log('📁 Repository not found locally, cloning...');
-            try {
-                await git.clone('https://github.com/theSoberSobber/Public-Keys.git', REPO_PATH);
-                console.log('✅ Repository cloned successfully to:', REPO_PATH);
-            } catch (cloneError) {
-                console.error('❌ Error cloning repository:', cloneError.message);
-                console.error('   Full error:', cloneError);
-                return null;
-            }
-        } else {
-            console.log('📁 Repository already exists at:', REPO_PATH);
+        // Always use fresh clone to avoid sync issues
+        console.log('🗑️  Removing existing repository to ensure clean state...');
+        if (fs.existsSync(REPO_PATH)) {
+            fs.rmSync(REPO_PATH, { recursive: true, force: true });
+            console.log('✅ Old repository removed');
+        }
+        
+        console.log('📁 Cloning fresh repository...');
+        try {
+            const cloneUrl = `https://${token}@github.com/theSoberSobber/Public-Keys.git`;
+            await git.clone(cloneUrl, REPO_PATH);
+            console.log('✅ Fresh repository cloned successfully to:', REPO_PATH);
+        } catch (cloneError) {
+            console.error('❌ Error cloning repository:', cloneError.message);
+            console.error('   Full error:', cloneError);
+            return null;
         }
         
         const repoGit = simpleGit(REPO_PATH);
@@ -112,28 +116,9 @@ async function commitToGitHub(userId, username, publicKey) {
         }
         console.log('✅ Step 1 completed: Git repository ready');
         
-        // Step 2: Fetch and pull latest changes more robustly
-        console.log('📝 Step 2: Fetching and pulling latest changes...');
-        try {
-            console.log('📥 Fetching latest changes...');
-            await git.fetch('origin');
-            console.log('✅ Fetch completed');
-            
-            try {
-                await git.pull('origin', 'main');
-                console.log('✅ Step 2 completed: Successfully pulled latest changes');
-            } catch (pullError) {
-                console.log('⚠️  Pull failed, trying to reset to remote state...');
-                try {
-                    await git.reset(['--hard', 'origin/main']);
-                    console.log('✅ Reset to remote state successful');
-                } catch (resetError) {
-                    console.log('⚠️  Reset failed, continuing with local state...');
-                }
-            }
-        } catch (fetchError) {
-            console.error('⚠️  Step 2 warning: Fetch failed (might be first commit):', fetchError.message);
-        }
+        // Step 2: Repository is fresh and up-to-date 
+        console.log('📝 Step 2: Repository is fresh with latest changes');
+        console.log('✅ Step 2 completed: No sync needed for fresh clone')
         
         // Step 3: Create user directory and files
         console.log('📝 Step 3: Creating user files...');
