@@ -31,7 +31,7 @@ module.exports = {
         if (!hasAdminRole) {
             await interaction.reply({
                 content: `❌ **Access Denied**\n\nYou need the \`electionBotAdmin\` role to reset the bot.\n\nOnly authorized administrators can perform destructive operations.`,
-                ephemeral: true
+                flags: 64 // Ephemeral flag
             });
             console.log(`❌ User ${username} attempted to reset bot without admin role`);
             return;
@@ -41,7 +41,7 @@ module.exports = {
         if (confirmation !== 'RESET-EVERYTHING') {
             await interaction.reply({
                 content: `❌ **Confirmation Required**\n\nTo confirm this destructive action, you must type exactly:\n\`RESET-EVERYTHING\`\n\n⚠️  **This will permanently delete:**\n• All elections\n• All candidates\n• All votes\n• All RSA keys\n• All GitHub repository data\n\n**This action cannot be undone!**`,
-                ephemeral: true
+                flags: 64 // Ephemeral flag
             });
             return;
         }

@@ -92,7 +92,7 @@ module.exports = {
         if (!hasAdminRole) {
             await interaction.reply({
                 content: `❌ **Access Denied**\n\nYou need the \`electionBotAdmin\` role to create elections.\n\nOnly authorized administrators can manage elections.`,
-                ephemeral: true
+                flags: 64 // Ephemeral flag
             });
             console.log(`❌ User ${username} attempted to create election without admin role`);
             return;
@@ -102,7 +102,7 @@ module.exports = {
         if (!/^[a-zA-Z0-9-_]+$/.test(electionName)) {
             await interaction.reply({
                 content: `❌ **Invalid Election Name**\n\nElection names can only contain letters, numbers, dashes (-), and underscores (_).\n\nExample: \`presidential-election-2024\``,
-                ephemeral: true
+                flags: 64 // Ephemeral flag
             });
             return;
         }
@@ -114,7 +114,7 @@ module.exports = {
         if (elections[electionName]) {
             await interaction.reply({
                 content: `❌ **Election Already Exists**\n\nAn election named \`${electionName}\` already exists.\n\nChoose a different name or delete the existing election first.`,
-                ephemeral: true
+                flags: 64 // Ephemeral flag
             });
             return;
         }
@@ -126,7 +126,7 @@ module.exports = {
             if (isNaN(startTime.getTime())) {
                 await interaction.reply({
                     content: `❌ **Invalid Start Time**\n\nPlease use format: YYYY-MM-DD HH:MM\nExample: \`2024-12-25 14:30\``,
-                    ephemeral: true
+                    flags: 64 // Ephemeral flag
                 });
                 return;
             }
@@ -139,7 +139,7 @@ module.exports = {
         if (!durationMs) {
             await interaction.reply({
                 content: `❌ **Invalid Duration**\n\nSupported formats:\n• \`24h\` (hours)\n• \`7d\` (days)\n• \`2w\` (weeks)\n• \`1m\` (months)\n\nExample: \`72h\` for 3 days`,
-                ephemeral: true
+                flags: 64 // Ephemeral flag
             });
             return;
         }
@@ -171,7 +171,7 @@ module.exports = {
         } else {
             await interaction.reply({
                 content: `❌ **Failed to Create Election**\n\nThere was an error saving the election data. Please try again.`,
-                ephemeral: true
+                flags: 64 // Ephemeral flag
             });
             console.error(`❌ Failed to save election '${electionName}' created by ${username}`);
         }

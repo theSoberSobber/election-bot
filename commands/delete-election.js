@@ -52,7 +52,7 @@ module.exports = {
         if (!hasAdminRole) {
             await interaction.reply({
                 content: `❌ **Access Denied**\n\nYou need the \`electionBotAdmin\` role to delete elections.\n\nOnly authorized administrators can manage elections.`,
-                ephemeral: true
+                flags: 64 // Ephemeral flag
             });
             console.log(`❌ User ${username} attempted to delete election without admin role`);
             return;
@@ -65,7 +65,7 @@ module.exports = {
         if (!elections[electionName]) {
             await interaction.reply({
                 content: `❌ **Election Not Found**\n\nNo election named \`${electionName}\` exists.\n\nUse \`/list-elections\` to see available elections.`,
-                ephemeral: true
+                flags: 64 // Ephemeral flag
             });
             return;
         }
@@ -85,7 +85,7 @@ module.exports = {
         } else {
             await interaction.reply({
                 content: `❌ **Failed to Delete Election**\n\nThere was an error saving the election data. Please try again.`,
-                ephemeral: true
+                flags: 64 // Ephemeral flag
             });
             console.error(`❌ Failed to delete election '${electionName}' by ${username}`);
         }

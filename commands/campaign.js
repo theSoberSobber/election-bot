@@ -59,7 +59,7 @@ module.exports = {
         if (!elections[electionName]) {
             await interaction.reply({
                 content: `❌ **Election not found!**\n\nThe election \`${electionName}\` does not exist.\n\nUse \`/list-elections\` to see available elections.`,
-                ephemeral: true
+                flags: 64 // Ephemeral flag
             });
             return;
         }
@@ -75,7 +75,7 @@ module.exports = {
                 const startTimestamp = Math.floor(startTime.getTime() / 1000);
                 await interaction.reply({
                     content: `❌ **Election Not Started Yet!**\n\nThe election \`${electionName}\` hasn't started yet.\n\n⏰ **Starts:** <t:${startTimestamp}:f> (<t:${startTimestamp}:R>)\n\nCampaign messages will be available when the election starts.`,
-                    ephemeral: true
+                    flags: 64 // Ephemeral flag
                 });
                 return;
             }
@@ -84,7 +84,7 @@ module.exports = {
                 const endTimestamp = Math.floor(endTime.getTime() / 1000);
                 await interaction.reply({
                     content: `❌ **Election Has Ended!**\n\nThe election \`${electionName}\` has already ended.\n\n⏰ **Ended:** <t:${endTimestamp}:f> (<t:${endTimestamp}:R>)\n\nCampaign messages are no longer allowed.`,
-                    ephemeral: true
+                    flags: 64 // Ephemeral flag
                 });
                 return;
             }

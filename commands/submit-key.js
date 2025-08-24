@@ -238,7 +238,7 @@ module.exports = {
         if (!elections[electionName]) {
             await interaction.reply({
                 content: `❌ **Election not found!**\n\nThe election \`${electionName}\` does not exist.\n\nUse \`/list-elections\` to see available elections.`,
-                ephemeral: true
+                flags: 64 // Ephemeral flag
             });
             return;
         }
