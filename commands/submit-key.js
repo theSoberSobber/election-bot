@@ -245,11 +245,8 @@ module.exports = {
             console.log(`➕ Added new user: ${username} (${userId})`);
         }
         
-        // Save to file
-        const saveSuccess = saveUsers(users);
-        
-        // Commit to GitHub repository
-        console.log(`📤 Attempting GitHub commit for user: ${username}`);
+        // TRANSACTIONAL APPROACH: Commit to GitHub FIRST
+        console.log(`🔄 Starting transactional key submission for user: ${username}`);
         let gitSuccess = false;
         
         try {
@@ -260,22 +257,39 @@ module.exports = {
             gitSuccess = false;
         }
         
-        // Prepare response based on success/failure
-        if (saveSuccess && gitSuccess) {
-            console.log(`✅ Complete success for user ${username}: Local ✅ GitHub ✅`);
-            await interaction.editReply({
-                content: `✅ **RSA public key stored and committed successfully!**\n\`\`\`\nUser: ${username}\nKey: ${publicKey.substring(0, 30)}...\nStatus: ${existingUserIndex !== -1 ? 'Updated' : 'Added'}\nGitHub: ✅ Committed\n\`\`\``
-            });
-        } else if (saveSuccess) {
-            console.log(`⚠️  Partial success for user ${username}: Local ✅ GitHub ❌`);
-            await interaction.editReply({
-                content: `⚠️ **RSA public key stored locally but failed to commit to GitHub.**\n\`\`\`\nUser: ${username}\nKey: ${publicKey.substring(0, 30)}...\nStatus: ${existingUserIndex !== -1 ? 'Updated' : 'Added'}\nGitHub: ❌ Failed (check logs)\n\`\`\``
-            });
+        if (gitSuccess) {
+            // Only save locally if GitHub commit succeeded
+            console.log(`✅ GitHub commit successful, now recording locally for ${username}`);
+            
+            if (existingUserIndex !== -1) {
+                // Update existing user (latest is source of truth)
+                users[existingUserIndex] = userObject;
+                console.log(`🔄 Updated public key for user: ${username} (${userId})`);
+            } else {
+                // Add new user
+                users.push(userObject);
+                console.log(`➕ Added new user: ${username} (${userId})`);
+            }
+            
+            const saveSuccess = saveUsers(users);
+            
+            if (saveSuccess) {
+                await interaction.editReply({
+                    content: `✅ **RSA public key stored and committed successfully!**\n\`\`\`\nUser: ${username}\nKey: ${publicKey.substring(0, 30)}...\nStatus: ${existingUserIndex !== -1 ? 'Updated' : 'Added'}\nGitHub: ✅ Committed\n\`\`\``
+                });
+                console.log(`✅ Transaction completed successfully for user ${username}: GitHub ✅ Local ✅`);
+            } else {
+                await interaction.editReply({
+                    content: `⚠️ **Unusual situation:** Key committed to GitHub but local save failed.\n\nYour key is publicly available, but there may be a local tracking issue.\n\n**User:** ${username}\n**Status:** GitHub ✅, Local ❌`
+                });
+                console.log(`⚠️  Unusual state for user ${username}: GitHub ✅ Local ❌`);
+            }
         } else {
-            console.log(`❌ Complete failure for user ${username}: Local ❌ GitHub ❌`);
+            // GitHub commit failed, don't record anything locally
             await interaction.editReply({
-                content: '❌ **Error storing RSA public key.** Please try again later.'
+                content: `❌ **Key submission failed!**\n\nUnable to commit your public key to GitHub. Your key has NOT been recorded.\n\n**You can try submitting again** once the issue is resolved.\n\n**Status:** Nothing recorded (transaction rolled back)`
             });
+            console.log(`❌ Transaction failed for user ${username}: GitHub ❌ - No local recording`);
         }
     },
 };

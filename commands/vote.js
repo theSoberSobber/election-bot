@@ -242,19 +242,10 @@ module.exports = {
                     return;
                 }
                 
-                // Record the vote
-                const voteObject = {
-                    userId: userId,
-                    username: username,
-                    signedMessage: signedMessage,
-                    submittedAt: new Date().toISOString()
-                };
-                
-                currentVotes.push(voteObject);
-                const saveSuccess = saveVotes(currentVotes);
-                
-                // Commit to GitHub
+                // TRANSACTIONAL APPROACH: Commit to GitHub FIRST
+                console.log(`🔄 Starting transactional vote process for ${username}`);
                 let gitSuccess = false;
+                
                 try {
                     gitSuccess = await commitVoteToGitHub(userId, username, signedMessage);
                 } catch (gitError) {
@@ -262,24 +253,39 @@ module.exports = {
                     gitSuccess = false;
                 }
                 
-                if (saveSuccess && gitSuccess) {
-                    await buttonInteraction.editReply({
-                        content: `✅ **Vote submitted successfully!**\n\n🗳️  Your signed message has been recorded and committed to the blockchain of votes.\n\n**User:** ${username}\n**Submission Time:** ${new Date().toLocaleString()}\n**Status:** Permanently recorded\n\n⚠️  **Remember:** This was your one and only vote submission.`,
-                        components: []
-                    });
-                    console.log(`✅ Successfully recorded vote for user ${username}`);
-                } else if (saveSuccess) {
-                    await buttonInteraction.editReply({
-                        content: `⚠️  **Vote recorded locally but GitHub commit failed.**\n\n🗳️  Your vote is saved but may not be publicly visible yet.\n\n**User:** ${username}\n**Status:** Recorded locally, GitHub sync pending`,
-                        components: []
-                    });
-                    console.log(`⚠️  Partial success for vote from user ${username}: Local ✅ GitHub ❌`);
+                if (gitSuccess) {
+                    // Only record locally if GitHub commit succeeded
+                    console.log(`✅ GitHub commit successful, now recording locally for ${username}`);
+                    const voteObject = {
+                        userId: userId,
+                        username: username,
+                        signedMessage: signedMessage,
+                        submittedAt: new Date().toISOString()
+                    };
+                    
+                    currentVotes.push(voteObject);
+                    const saveSuccess = saveVotes(currentVotes);
+                    
+                    if (saveSuccess) {
+                        await buttonInteraction.editReply({
+                            content: `✅ **Vote submitted successfully!**\n\n🗳️  Your signed message has been recorded and committed to the blockchain of votes.\n\n**User:** ${username}\n**Submission Time:** ${new Date().toLocaleString()}\n**Status:** Permanently recorded\n\n⚠️  **Remember:** This was your one and only vote submission.`,
+                            components: []
+                        });
+                        console.log(`✅ Transaction completed successfully for user ${username}: GitHub ✅ Local ✅`);
+                    } else {
+                        await buttonInteraction.editReply({
+                            content: `⚠️  **Unusual situation:** Vote committed to GitHub but local save failed.\n\nYour vote is publicly recorded, but there may be a local tracking issue.\n\n**User:** ${username}\n**Status:** GitHub ✅, Local ❌`,
+                            components: []
+                        });
+                        console.log(`⚠️  Unusual state for user ${username}: GitHub ✅ Local ❌`);
+                    }
                 } else {
+                    // GitHub commit failed, don't record anything locally
                     await buttonInteraction.editReply({
-                        content: '❌ **Error recording vote.** Please try again.',
+                        content: `❌ **Vote submission failed!**\n\nUnable to commit your vote to GitHub. Your vote has NOT been recorded.\n\n**You can try voting again** once the issue is resolved.\n\n**Status:** Nothing recorded (transaction rolled back)`,
                         components: []
                     });
-                    console.log(`❌ Failed to record vote for user ${username}`);
+                    console.log(`❌ Transaction failed for user ${username}: GitHub ❌ - No local recording`);
                 }
             }
         });
