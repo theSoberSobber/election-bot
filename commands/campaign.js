@@ -50,10 +50,19 @@ module.exports = {
         const campaignTitle = `📢 **Campaign for ${candidate.name} ${candidate.emoji}**`;
         const campaignContent = `${campaignTitle}\n\n${message}\n\n*- ${candidate.name} (@${username})*`;
         
-        await interaction.reply({
-            content: campaignContent
+        const reply = await interaction.reply({
+            content: campaignContent,
+            fetchReply: true
         });
         
-        console.log(`📢 Campaign message sent by candidate ${candidate.name} (${username})`);
+        // Add upvote and downvote reactions
+        try {
+            await reply.react('👍');
+            await reply.react('👎');
+            console.log(`📢 Campaign message sent by candidate ${candidate.name} (${username}) with vote reactions`);
+        } catch (error) {
+            console.error('⚠️  Failed to add reactions to campaign message:', error.message);
+            console.log(`📢 Campaign message sent by candidate ${candidate.name} (${username}) without reactions`);
+        }
     },
 };
