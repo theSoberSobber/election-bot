@@ -59,10 +59,17 @@ async function initializeVotesRepo() {
         if (!fs.existsSync(VOTES_REPO_PATH)) {
             console.log('📁 Votes repository not found locally, cloning...');
             try {
-                await git.clone('https://github.com/theSoberSobber/Votes.git', VOTES_REPO_PATH);
+                // Use token in clone URL for authentication
+                const cloneUrl = `https://${token}@github.com/theSoberSobber/Votes.git`;
+                console.log('🔗 Using authenticated clone URL (token hidden for security)');
+                await git.clone(cloneUrl, VOTES_REPO_PATH);
                 console.log('✅ Votes repository cloned successfully to:', VOTES_REPO_PATH);
             } catch (cloneError) {
                 console.error('❌ Error cloning votes repository:', cloneError.message);
+                console.error('   This might be due to:');
+                console.error('   - Token lacks access to theSoberSobber/Votes repository');
+                console.error('   - Repository is private and token needs repo permissions');
+                console.error('   - Token has expired or been revoked');
                 return null;
             }
         } else {
