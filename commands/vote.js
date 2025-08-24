@@ -1,0 +1,290 @@
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const fs = require('node:fs');
+const path = require('node:path');
+const simpleGit = require('simple-git');
+
+const USERS_FILE = path.join(__dirname, '..', 'users.json');
+const VOTES_FILE = path.join(__dirname, '..', 'votes.json');
+const VOTES_REPO_PATH = path.join(__dirname, '..', 'votes-repo');
+
+// Load users from JSON file
+function loadUsers() {
+    try {
+        if (!fs.existsSync(USERS_FILE)) {
+            return [];
+        }
+        const data = fs.readFileSync(USERS_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Error loading users file:', error);
+        return [];
+    }
+}
+
+// Load votes from JSON file
+function loadVotes() {
+    try {
+        if (!fs.existsSync(VOTES_FILE)) {
+            fs.writeFileSync(VOTES_FILE, JSON.stringify([], null, 2));
+            return [];
+        }
+        const data = fs.readFileSync(VOTES_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Error loading votes file:', error);
+        return [];
+    }
+}
+
+// Save votes to JSON file
+function saveVotes(votes) {
+    try {
+        fs.writeFileSync(VOTES_FILE, JSON.stringify(votes, null, 2));
+        return true;
+    } catch (error) {
+        console.error('Error saving votes file:', error);
+        return false;
+    }
+}
+
+// Initialize votes repository
+async function initializeVotesRepo() {
+    try {
+        console.log('🔄 Initializing Votes repository...');
+        const git = simpleGit();
+        
+        const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+        console.log('🔑 GitHub token available:', token ? 'YES' : 'NO');
+        
+        if (!fs.existsSync(VOTES_REPO_PATH)) {
+            console.log('📁 Votes repository not found locally, cloning...');
+            try {
+                await git.clone('https://github.com/theSoberSobber/Votes.git', VOTES_REPO_PATH);
+                console.log('✅ Votes repository cloned successfully to:', VOTES_REPO_PATH);
+            } catch (cloneError) {
+                console.error('❌ Error cloning votes repository:', cloneError.message);
+                return null;
+            }
+        } else {
+            console.log('📁 Votes repository already exists at:', VOTES_REPO_PATH);
+        }
+        
+        const repoGit = simpleGit(VOTES_REPO_PATH);
+        
+        if (token) {
+            try {
+                await repoGit.addConfig('user.name', 'Discord Bot');
+                await repoGit.addConfig('user.email', 'bot@example.com');
+                console.log('✅ Votes repo git credentials configured');
+            } catch (configError) {
+                console.error('❌ Error configuring votes repo git credentials:', configError.message);
+            }
+        }
+        
+        return repoGit;
+    } catch (error) {
+        console.error('❌ Fatal error in initializeVotesRepo:', error.message);
+        return null;
+    }
+}
+
+// Commit vote to GitHub repository
+async function commitVoteToGitHub(userId, username, signedMessage) {
+    console.log(`🚀 Starting vote commit process for user: ${username} (${userId})`);
+    
+    try {
+        const git = await initializeVotesRepo();
+        if (!git) {
+            console.error('❌ Failed to initialize votes repository');
+            return false;
+        }
+        
+        // Pull latest changes
+        try {
+            await git.pull('origin', 'main');
+            console.log('✅ Successfully pulled latest changes from votes repo');
+        } catch (pullError) {
+            console.error('⚠️  Pull failed (might be first commit):', pullError.message);
+        }
+        
+        // Create vote file
+        const voteDir = path.join(VOTES_REPO_PATH, 'votes');
+        if (!fs.existsSync(voteDir)) {
+            fs.mkdirSync(voteDir, { recursive: true });
+            console.log('✅ Created votes directory');
+        }
+        
+        const voteFile = path.join(voteDir, `${userId}.txt`);
+        const voteContent = `User: ${username} (${userId})
+Timestamp: ${new Date().toISOString()}
+Signed Message:
+${signedMessage}`;
+        
+        fs.writeFileSync(voteFile, voteContent);
+        console.log('✅ Written vote file:', voteFile);
+        
+        // Commit and push
+        await git.add('.');
+        await git.commit(`Add vote from user ${username} (${userId})`);
+        
+        const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+        const remoteUrl = `https://${token}@github.com/theSoberSobber/Votes.git`;
+        await git.push(remoteUrl, 'main');
+        
+        console.log(`🎉 Successfully committed vote for ${username} to Votes repository!`);
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Error committing vote to GitHub:', error.message);
+        console.error('   Full error:', error);
+        return false;
+    }
+}
+
+module.exports = {
+    data: new SlashCommandBuilder()
+        .setName('vote')
+        .setDescription('Submit your signed vote message (one-time only)')
+        .addStringOption(option =>
+            option.setName('signed-message')
+                .setDescription('Your message signed with your private key')
+                .setRequired(true)),
+    
+    async execute(interaction) {
+        const signedMessage = interaction.options.getString('signed-message');
+        const userId = interaction.user.id;
+        const username = interaction.user.username;
+        
+        console.log(`🗳️  Vote attempt by user: ${username} (${userId})`);
+        
+        // Check if user has submitted their public key
+        const users = loadUsers();
+        const userHasKey = users.find(user => user.userId === userId);
+        
+        if (!userHasKey) {
+            await interaction.reply({
+                content: `❌ **You must submit your public key first!**\n\nUse the \`/submit-key\` command to register your RSA public key before you can vote.\n\nThis ensures we can verify your signed messages.`
+            });
+            console.log(`❌ User ${username} attempted to vote without submitting public key`);
+            return;
+        }
+        
+        // Check if user has already voted
+        const votes = loadVotes();
+        const existingVote = votes.find(vote => vote.userId === userId);
+        
+        if (existingVote) {
+            await interaction.reply({
+                content: `❌ **You have already submitted your vote!**\n\nVoting is limited to **one submission per user**. Your vote was recorded on: \`${new Date(existingVote.submittedAt).toLocaleString()}\`\n\nNo additional votes can be accepted.`
+            });
+            console.log(`❌ User ${username} attempted to vote again (already voted on ${existingVote.submittedAt})`);
+            return;
+        }
+        
+        // Create confirmation buttons
+        const confirmRow = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('vote_confirm')
+                    .setLabel('✅ Yes, Submit My Vote')
+                    .setStyle(ButtonStyle.Success),
+                new ButtonBuilder()
+                    .setCustomId('vote_cancel')
+                    .setLabel('❌ Cancel')
+                    .setStyle(ButtonStyle.Secondary)
+            );
+        
+        await interaction.reply({
+            content: `🗳️  **IMPORTANT: Final Vote Confirmation**\n\n⚠️  **You can only vote ONCE!**\n\nOnce you confirm, your signed message will be permanently recorded and you will **NOT** be able to vote again.\n\n**Your signed message:**\n\`\`\`${signedMessage.substring(0, 200)}${signedMessage.length > 200 ? '...' : ''}\`\`\`\n\n**Are you sure you want to submit this as your final vote?**`,
+            components: [confirmRow]
+        });
+        
+        // Create button interaction collector
+        const filter = (buttonInteraction) => {
+            return buttonInteraction.user.id === userId && 
+                   (buttonInteraction.customId === 'vote_confirm' || buttonInteraction.customId === 'vote_cancel');
+        };
+        
+        const collector = interaction.channel.createMessageComponentCollector({
+            filter,
+            time: 60000 // 1 minute timeout
+        });
+        
+        collector.on('collect', async (buttonInteraction) => {
+            if (buttonInteraction.customId === 'vote_cancel') {
+                await buttonInteraction.update({
+                    content: '❌ **Vote cancelled.** You can use `/vote` again when you\'re ready to submit.',
+                    components: []
+                });
+                console.log(`❌ User ${username} cancelled their vote submission`);
+                return;
+            }
+            
+            if (buttonInteraction.customId === 'vote_confirm') {
+                await buttonInteraction.deferUpdate();
+                
+                // Double-check they haven't voted in the meantime
+                const currentVotes = loadVotes();
+                const doubleCheckVote = currentVotes.find(vote => vote.userId === userId);
+                
+                if (doubleCheckVote) {
+                    await buttonInteraction.editReply({
+                        content: '❌ **Vote submission failed!** You have already voted while this confirmation was pending.',
+                        components: []
+                    });
+                    return;
+                }
+                
+                // Record the vote
+                const voteObject = {
+                    userId: userId,
+                    username: username,
+                    signedMessage: signedMessage,
+                    submittedAt: new Date().toISOString()
+                };
+                
+                currentVotes.push(voteObject);
+                const saveSuccess = saveVotes(currentVotes);
+                
+                // Commit to GitHub
+                let gitSuccess = false;
+                try {
+                    gitSuccess = await commitVoteToGitHub(userId, username, signedMessage);
+                } catch (gitError) {
+                    console.error('❌ Vote GitHub commit failed:', gitError.message);
+                    gitSuccess = false;
+                }
+                
+                if (saveSuccess && gitSuccess) {
+                    await buttonInteraction.editReply({
+                        content: `✅ **Vote submitted successfully!**\n\n🗳️  Your signed message has been recorded and committed to the blockchain of votes.\n\n**User:** ${username}\n**Submission Time:** ${new Date().toLocaleString()}\n**Status:** Permanently recorded\n\n⚠️  **Remember:** This was your one and only vote submission.`,
+                        components: []
+                    });
+                    console.log(`✅ Successfully recorded vote for user ${username}`);
+                } else if (saveSuccess) {
+                    await buttonInteraction.editReply({
+                        content: `⚠️  **Vote recorded locally but GitHub commit failed.**\n\n🗳️  Your vote is saved but may not be publicly visible yet.\n\n**User:** ${username}\n**Status:** Recorded locally, GitHub sync pending`,
+                        components: []
+                    });
+                    console.log(`⚠️  Partial success for vote from user ${username}: Local ✅ GitHub ❌`);
+                } else {
+                    await buttonInteraction.editReply({
+                        content: '❌ **Error recording vote.** Please try again.',
+                        components: []
+                    });
+                    console.log(`❌ Failed to record vote for user ${username}`);
+                }
+            }
+        });
+        
+        collector.on('end', (collected) => {
+            if (collected.size === 0) {
+                interaction.editReply({
+                    content: '⏰ **Vote confirmation timeout.** Use `/vote` again when you\'re ready to submit.',
+                    components: []
+                }).catch(console.error);
+                console.log(`⏰ Vote confirmation timeout for user ${username}`);
+            }
+        });
+    },
+};
