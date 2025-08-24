@@ -4,21 +4,31 @@ const path = require('node:path');
 const NodeRSA = require('node-rsa');
 const simpleGit = require('simple-git');
 
-const USERS_FILE = path.join(__dirname, '..', 'users.json');
+const ELECTIONS_FILE = path.join(__dirname, '..', 'elections.json');
 const REPO_PATH = path.join(__dirname, '..', 'public-keys-repo');
 
-// Initialize users file if it doesn't exist
-function initializeUsersFile() {
-    if (!fs.existsSync(USERS_FILE)) {
-        fs.writeFileSync(USERS_FILE, JSON.stringify([], null, 2));
+// Load elections from JSON file
+function loadElections() {
+    try {
+        if (!fs.existsSync(ELECTIONS_FILE)) {
+            return {};
+        }
+        const data = fs.readFileSync(ELECTIONS_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Error loading elections file:', error);
+        return {};
     }
 }
 
-// Load users from JSON file
-function loadUsers() {
-    initializeUsersFile();
+// Load users from election-specific JSON file
+function loadUsers(electionName) {
+    const usersFile = path.join(__dirname, '..', `users-${electionName}.json`);
     try {
-        const data = fs.readFileSync(USERS_FILE, 'utf8');
+        if (!fs.existsSync(usersFile)) {
+            return [];
+        }
+        const data = fs.readFileSync(usersFile, 'utf8');
         return JSON.parse(data);
     } catch (error) {
         console.error('Error loading users file:', error);
@@ -26,10 +36,11 @@ function loadUsers() {
     }
 }
 
-// Save users to JSON file
-function saveUsers(users) {
+// Save users to election-specific JSON file
+function saveUsers(users, electionName) {
+    const usersFile = path.join(__dirname, '..', `users-${electionName}.json`);
     try {
-        fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+        fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
         return true;
     } catch (error) {
         console.error('Error saving users file:', error);
@@ -103,7 +114,7 @@ async function initializeGitRepo() {
 }
 
 // Commit public key to GitHub repository
-async function commitToGitHub(userId, username, publicKey) {
+async function commitToGitHub(userId, username, publicKey, electionName) {
     console.log(`🚀 Starting GitHub commit process for user: ${username} (${userId})`);
     
     try {
@@ -120,9 +131,15 @@ async function commitToGitHub(userId, username, publicKey) {
         console.log('📝 Step 2: Repository is fresh with latest changes');
         console.log('✅ Step 2 completed: No sync needed for fresh clone')
         
-        // Step 3: Create user directory and files
-        console.log('📝 Step 3: Creating user files...');
-        const userDir = path.join(REPO_PATH, 'users', userId);
+        // Step 3: Create election-specific user directory and files
+        console.log('📝 Step 3: Creating election-specific user files...');
+        const electionDir = path.join(REPO_PATH, 'elections', electionName);
+        if (!fs.existsSync(electionDir)) {
+            fs.mkdirSync(electionDir, { recursive: true });
+            console.log('   ✅ Created election directory:', electionDir);
+        }
+        
+        const userDir = path.join(electionDir, 'users', userId);
         console.log('   User directory path:', userDir);
         
         if (!fs.existsSync(userDir)) {
@@ -155,7 +172,7 @@ async function commitToGitHub(userId, username, publicKey) {
         
         // Step 5: Commit changes
         console.log('📝 Step 5: Committing changes...');
-        const commitMessage = `Add/Update public key for user ${username} (${userId})`;
+        const commitMessage = `Add/Update public key for user ${username} (${userId}) in election ${electionName}`;
         await git.commit(commitMessage);
         console.log('✅ Step 5 completed: Changes committed with message:', commitMessage);
         
@@ -198,16 +215,33 @@ async function commitToGitHub(userId, username, publicKey) {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('submit-key')
-        .setDescription('Submit your public key for storage')
+        .setDescription('Submit your public key for storage in an election')
+        .addStringOption(option =>
+            option.setName('election')
+                .setDescription('Name of the election')
+                .setRequired(true))
         .addStringOption(option =>
             option.setName('publickey')
                 .setDescription('Your public key')
                 .setRequired(true)),
     
     async execute(interaction) {
+        const electionName = interaction.options.getString('election');
         const publicKey = interaction.options.getString('publickey');
         const userId = interaction.user.id;
         const username = interaction.user.username;
+        
+        console.log(`🔑 Key submission attempt by user: ${username} for election: ${electionName}`);
+        
+        // Check if election exists
+        const elections = loadElections();
+        if (!elections[electionName]) {
+            await interaction.reply({
+                content: `❌ **Election not found!**\n\nThe election \`${electionName}\` does not exist.\n\nUse \`/list-elections\` to see available elections.`,
+                ephemeral: true
+            });
+            return;
+        }
         
         // Validate that the key is a valid RSA public key
         if (!validateRSAKey(publicKey)) {
@@ -220,8 +254,8 @@ module.exports = {
         // Defer reply for longer operations
         await interaction.deferReply();
         
-        // Load existing users
-        let users = loadUsers();
+        // Load existing users for this election
+        let users = loadUsers(electionName);
         
         // Check if user already exists
         const existingUserIndex = users.findIndex(user => user.userId === userId);
@@ -248,7 +282,7 @@ module.exports = {
         let gitSuccess = false;
         
         try {
-            gitSuccess = await commitToGitHub(userId, username, publicKey);
+            gitSuccess = await commitToGitHub(userId, username, publicKey, electionName);
         } catch (gitError) {
             console.error('❌ GitHub commit failed with exception:', gitError.message);
             console.error('   Full error:', gitError);
@@ -269,11 +303,11 @@ module.exports = {
                 console.log(`➕ Added new user: ${username} (${userId})`);
             }
             
-            const saveSuccess = saveUsers(users);
+            const saveSuccess = saveUsers(users, electionName);
             
             if (saveSuccess) {
                 await interaction.editReply({
-                    content: `✅ **RSA public key stored and committed successfully!**\n\`\`\`\nUser: ${username}\nKey: ${publicKey.substring(0, 30)}...\nStatus: ${existingUserIndex !== -1 ? 'Updated' : 'Added'}\nGitHub: ✅ Committed\n\`\`\``
+                    content: `✅ **RSA public key stored and committed successfully!**\n\`\`\`\nUser: ${username}\nElection: ${electionName}\nKey: ${publicKey.substring(0, 30)}...\nStatus: ${existingUserIndex !== -1 ? 'Updated' : 'Added'}\nGitHub: ✅ Committed\n\`\`\``
                 });
                 console.log(`✅ Transaction completed successfully for user ${username}: GitHub ✅ Local ✅`);
             } else {

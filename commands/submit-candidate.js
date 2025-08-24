@@ -3,17 +3,31 @@ const fs = require('node:fs');
 const path = require('node:path');
 const simpleGit = require('simple-git');
 
-const USERS_FILE = path.join(__dirname, '..', 'users.json');
-const CANDIDATES_FILE = path.join(__dirname, '..', 'candidates.json');
+const ELECTIONS_FILE = path.join(__dirname, '..', 'elections.json');
 const REPO_PATH = path.join(__dirname, '..', 'public-keys-repo');
 
-// Load users from JSON file
-function loadUsers() {
+// Load elections from JSON file
+function loadElections() {
     try {
-        if (!fs.existsSync(USERS_FILE)) {
+        if (!fs.existsSync(ELECTIONS_FILE)) {
+            return {};
+        }
+        const data = fs.readFileSync(ELECTIONS_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Error loading elections file:', error);
+        return {};
+    }
+}
+
+// Load users from election-specific JSON file
+function loadUsers(electionName) {
+    const usersFile = path.join(__dirname, '..', `users-${electionName}.json`);
+    try {
+        if (!fs.existsSync(usersFile)) {
             return [];
         }
-        const data = fs.readFileSync(USERS_FILE, 'utf8');
+        const data = fs.readFileSync(usersFile, 'utf8');
         return JSON.parse(data);
     } catch (error) {
         console.error('Error loading users file:', error);
@@ -21,14 +35,14 @@ function loadUsers() {
     }
 }
 
-// Load candidates from JSON file
-function loadCandidates() {
+// Load candidates from election-specific JSON file
+function loadCandidates(electionName) {
+    const candidatesFile = path.join(__dirname, '..', `candidates-${electionName}.json`);
     try {
-        if (!fs.existsSync(CANDIDATES_FILE)) {
-            fs.writeFileSync(CANDIDATES_FILE, JSON.stringify([], null, 2));
+        if (!fs.existsSync(candidatesFile)) {
             return [];
         }
-        const data = fs.readFileSync(CANDIDATES_FILE, 'utf8');
+        const data = fs.readFileSync(candidatesFile, 'utf8');
         return JSON.parse(data);
     } catch (error) {
         console.error('Error loading candidates file:', error);
@@ -36,10 +50,11 @@ function loadCandidates() {
     }
 }
 
-// Save candidates to JSON file
-function saveCandidates(candidates) {
+// Save candidates to election-specific JSON file
+function saveCandidates(candidates, electionName) {
+    const candidatesFile = path.join(__dirname, '..', `candidates-${electionName}.json`);
     try {
-        fs.writeFileSync(CANDIDATES_FILE, JSON.stringify(candidates, null, 2));
+        fs.writeFileSync(candidatesFile, JSON.stringify(candidates, null, 2));
         return true;
     } catch (error) {
         console.error('Error saving candidates file:', error);
@@ -93,7 +108,7 @@ async function initializeGitRepo() {
 }
 
 // Commit candidate info to GitHub repository
-async function commitCandidateToGitHub(userId, username, name, emoji, agenda) {
+async function commitCandidateToGitHub(userId, username, name, emoji, agenda, electionName) {
     console.log(`🚀 Starting candidate commit process for user: ${username} (${userId})`);
     
     try {
@@ -106,8 +121,14 @@ async function commitCandidateToGitHub(userId, username, name, emoji, agenda) {
         // No need to pull - we have fresh clone with latest changes
         console.log('✅ Repository is fresh and up-to-date')
         
-        // Create candidates directory and file
-        const candidatesDir = path.join(REPO_PATH, 'candidates');
+        // Create election-specific candidates directory and file
+        const electionDir = path.join(REPO_PATH, 'elections', electionName);
+        if (!fs.existsSync(electionDir)) {
+            fs.mkdirSync(electionDir, { recursive: true });
+            console.log('✅ Created election directory:', electionDir);
+        }
+        
+        const candidatesDir = path.join(electionDir, 'candidates');
         if (!fs.existsSync(candidatesDir)) {
             fs.mkdirSync(candidatesDir, { recursive: true });
             console.log('✅ Created candidates directory');
@@ -126,8 +147,8 @@ async function commitCandidateToGitHub(userId, username, name, emoji, agenda) {
         fs.writeFileSync(candidateFile, JSON.stringify(candidateInfo, null, 2));
         console.log('✅ Written candidate file:', candidateFile);
         
-        // Update candidates list file
-        const candidatesListFile = path.join(REPO_PATH, 'candidates.json');
+        // Update election candidates list file
+        const candidatesListFile = path.join(electionDir, 'candidates.json');
         let allCandidates = [];
         
         if (fs.existsSync(candidatesListFile)) {
@@ -147,7 +168,7 @@ async function commitCandidateToGitHub(userId, username, name, emoji, agenda) {
         
         // Commit and push
         await git.add('.');
-        await git.commit(`Add/Update candidate ${name} (${username} - ${userId})`);
+        await git.commit(`Add/Update candidate ${name} (${username} - ${userId}) in election ${electionName}`);
         
         const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
         const remoteUrl = `https://${token}@github.com/theSoberSobber/Public-Keys.git`;
@@ -166,7 +187,11 @@ async function commitCandidateToGitHub(userId, username, name, emoji, agenda) {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('submit-candidate')
-        .setDescription('Submit your candidacy information')
+        .setDescription('Submit your candidacy information for an election')
+        .addStringOption(option =>
+            option.setName('election')
+                .setDescription('Name of the election')
+                .setRequired(true))
         .addStringOption(option =>
             option.setName('name')
                 .setDescription('Your candidate name')
@@ -181,16 +206,27 @@ module.exports = {
                 .setRequired(true)),
     
     async execute(interaction) {
+        const electionName = interaction.options.getString('election');
         const name = interaction.options.getString('name');
         const emoji = interaction.options.getString('emoji');
         const agenda = interaction.options.getString('agenda');
         const userId = interaction.user.id;
         const username = interaction.user.username;
         
-        console.log(`👤 Candidate submission attempt by user: ${username} (${userId})`);
+        console.log(`👤 Candidate submission attempt by user: ${username} for election: ${electionName}`);
         
-        // Check if user has submitted their public key
-        const users = loadUsers();
+        // Check if election exists
+        const elections = loadElections();
+        if (!elections[electionName]) {
+            await interaction.reply({
+                content: `❌ **Election not found!**\n\nThe election \`${electionName}\` does not exist.\n\nUse \`/list-elections\` to see available elections.`,
+                ephemeral: true
+            });
+            return;
+        }
+        
+        // Check if user has submitted their public key for this election
+        const users = loadUsers(electionName);
         const userHasKey = users.find(user => user.userId === userId);
         
         if (!userHasKey) {
@@ -216,7 +252,7 @@ module.exports = {
         let gitSuccess = false;
         
         try {
-            gitSuccess = await commitCandidateToGitHub(userId, username, name, emoji, agenda);
+            gitSuccess = await commitCandidateToGitHub(userId, username, name, emoji, agenda, electionName);
         } catch (gitError) {
             console.error('❌ GitHub commit failed with exception:', gitError.message);
             gitSuccess = false;
@@ -226,7 +262,7 @@ module.exports = {
             // Only save locally if GitHub commit succeeded
             console.log(`✅ GitHub commit successful, now recording locally for ${username}`);
             
-            let candidates = loadCandidates();
+            let candidates = loadCandidates(electionName);
             
             // Remove existing candidacy if any (latest is source of truth)
             candidates = candidates.filter(c => c.userId !== userId);
@@ -241,7 +277,7 @@ module.exports = {
             };
             
             candidates.push(candidateObject);
-            const saveSuccess = saveCandidates(candidates);
+            const saveSuccess = saveCandidates(candidates, electionName);
             
             if (saveSuccess) {
                 await interaction.editReply({

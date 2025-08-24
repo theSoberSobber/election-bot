@@ -3,8 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const simpleGit = require('simple-git');
 
-const USERS_FILE = path.join(__dirname, '..', 'users.json');
-const VOTES_FILE = path.join(__dirname, '..', 'votes.json');
+const ELECTIONS_FILE = path.join(__dirname, '..', 'elections.json');
 const VOTES_REPO_PATH = path.join(__dirname, '..', 'votes-repo');
 
 // Load users from JSON file
@@ -152,6 +151,10 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('vote')
         .setDescription('Submit your signed vote message (one-time only)')
+        .addStringOption(option =>
+            option.setName('election')
+                .setDescription('Name of the election')
+                .setRequired(true))
         .addStringOption(option =>
             option.setName('signed-message')
                 .setDescription('Your message signed with your private key')
