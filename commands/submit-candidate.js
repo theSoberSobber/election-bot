@@ -215,7 +215,7 @@ module.exports = {
         
         console.log(`👤 Candidate submission attempt by user: ${username} for election: ${electionName}`);
         
-        // Check if election exists
+        // Check if election exists and is active
         const elections = loadElections();
         if (!elections[electionName]) {
             await interaction.reply({
@@ -223,6 +223,32 @@ module.exports = {
                 ephemeral: true
             });
             return;
+        }
+        
+        // Check if election is active (if timing is configured)
+        const election = elections[electionName];
+        if (election.startTime && election.endTime) {
+            const now = new Date();
+            const startTime = new Date(election.startTime);
+            const endTime = new Date(election.endTime);
+            
+            if (now < startTime) {
+                const startTimestamp = Math.floor(startTime.getTime() / 1000);
+                await interaction.reply({
+                    content: `❌ **Election Not Started Yet!**\n\nThe election \`${electionName}\` hasn't started yet.\n\n⏰ **Starts:** <t:${startTimestamp}:f> (<t:${startTimestamp}:R>)\n\nYou can submit your RSA key now, but candidate registration opens when the election starts.`,
+                    ephemeral: true
+                });
+                return;
+            }
+            
+            if (now > endTime) {
+                const endTimestamp = Math.floor(endTime.getTime() / 1000);
+                await interaction.reply({
+                    content: `❌ **Election Has Ended!**\n\nThe election \`${electionName}\` has already ended.\n\n⏰ **Ended:** <t:${endTimestamp}:f> (<t:${endTimestamp}:R>)\n\nCandidate registration is no longer allowed.`,
+                    ephemeral: true
+                });
+                return;
+            }
         }
         
         // Check if user has submitted their public key for this election

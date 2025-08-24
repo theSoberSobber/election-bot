@@ -4,6 +4,36 @@ const path = require('node:path');
 
 const ELECTIONS_FILE = path.join(__dirname, '..', 'elections.json');
 
+// Parse duration string to milliseconds
+function parseDuration(durationStr) {
+    const match = durationStr.match(/^(\d+)([hdwm])$/);
+    if (!match) return null;
+    
+    const value = parseInt(match[1]);
+    const unit = match[2];
+    
+    const multipliers = {
+        'h': 60 * 60 * 1000,      // hours
+        'd': 24 * 60 * 60 * 1000, // days
+        'w': 7 * 24 * 60 * 60 * 1000, // weeks
+        'm': 30 * 24 * 60 * 60 * 1000  // months (approx)
+    };
+    
+    return value * multipliers[unit];
+}
+
+// Get election status based on current time
+function getElectionStatus(startTime, endTime) {
+    const now = new Date();
+    if (now < startTime) {
+        return 'upcoming';
+    } else if (now >= startTime && now <= endTime) {
+        return 'active';
+    } else {
+        return 'ended';
+    }
+}
+
 // Load elections from JSON file
 function loadElections() {
     try {
@@ -36,10 +66,20 @@ module.exports = {
         .addStringOption(option =>
             option.setName('name')
                 .setDescription('Name of the election (no spaces, use dashes)')
-                .setRequired(true)),
+                .setRequired(true))
+        .addStringOption(option =>
+            option.setName('start')
+                .setDescription('Start time (YYYY-MM-DD HH:MM or leave empty for now)')
+                .setRequired(false))
+        .addStringOption(option =>
+            option.setName('duration')
+                .setDescription('Election duration (e.g., 24h, 7d, 2w - default: 24h)')
+                .setRequired(false)),
     
     async execute(interaction) {
         const electionName = interaction.options.getString('name');
+        const startInput = interaction.options.getString('start');
+        const durationInput = interaction.options.getString('duration') || '24h';
         const userId = interaction.user.id;
         const username = interaction.user.username;
         
@@ -79,18 +119,53 @@ module.exports = {
             return;
         }
         
+        // Parse start time
+        let startTime;
+        if (startInput) {
+            startTime = new Date(startInput);
+            if (isNaN(startTime.getTime())) {
+                await interaction.reply({
+                    content: `❌ **Invalid Start Time**\n\nPlease use format: YYYY-MM-DD HH:MM\nExample: \`2024-12-25 14:30\``,
+                    ephemeral: true
+                });
+                return;
+            }
+        } else {
+            startTime = new Date(); // Start now if not specified
+        }
+
+        // Parse duration and calculate end time
+        const durationMs = parseDuration(durationInput);
+        if (!durationMs) {
+            await interaction.reply({
+                content: `❌ **Invalid Duration**\n\nSupported formats:\n• \`24h\` (hours)\n• \`7d\` (days)\n• \`2w\` (weeks)\n• \`1m\` (months)\n\nExample: \`72h\` for 3 days`,
+                ephemeral: true
+            });
+            return;
+        }
+
+        const endTime = new Date(startTime.getTime() + durationMs);
+
         // Create new election
         elections[electionName] = {
             name: electionName,
             createdBy: userId,
             createdAt: new Date().toISOString(),
-            status: 'active'
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString(),
+            duration: durationInput,
+            status: getElectionStatus(startTime, endTime)
         };
         
         // Save elections
         if (saveElections(elections)) {
+            const now = Date.now();
+            const startTimestamp = Math.floor(startTime.getTime() / 1000);
+            const endTimestamp = Math.floor(endTime.getTime() / 1000);
+            const createdTimestamp = Math.floor(now / 1000);
+
             await interaction.reply({
-                content: `✅ **Election Created Successfully!**\n\n📊 **Election:** \`${electionName}\`\n👤 **Created by:** ${username}\n🕒 **Created:** <t:${Math.floor(Date.now() / 1000)}:f>\n\n🎯 Users can now:\n• Submit RSA keys for this election\n• Register as candidates\n• Vote (when ready)\n• Send campaign messages\n\nAll commands now require the election name parameter!`
+                content: `✅ **Election Created Successfully!**\n\n📊 **Election:** \`${electionName}\`\n👤 **Created by:** ${username}\n🕒 **Created:** <t:${createdTimestamp}:f>\n⏰ **Starts:** <t:${startTimestamp}:f> (<t:${startTimestamp}:R>)\n⏰ **Ends:** <t:${endTimestamp}:f> (<t:${endTimestamp}:R>)\n📏 **Duration:** ${durationInput}\n📈 **Status:** ${elections[electionName].status}\n\n🎯 **Timeline:**\n• 🔑 **RSA keys:** Can be submitted anytime\n• 🗳️ **Voting & Candidates:** Only during active period\n• 📢 **Campaigns:** Only during active period\n\nAll commands require the election name parameter!`
             });
             console.log(`✅ Election '${electionName}' created successfully by admin ${username}`);
         } else {

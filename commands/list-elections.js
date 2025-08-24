@@ -46,12 +46,49 @@ module.exports = {
         for (const name of electionNames) {
             const election = elections[name];
             const createdDate = new Date(election.createdAt);
-            const timestamp = Math.floor(createdDate.getTime() / 1000);
+            const createdTimestamp = Math.floor(createdDate.getTime() / 1000);
             
-            electionsList += `🗳️  **${election.name}**\n`;
-            electionsList += `   👤 Created by: <@${election.createdBy}>\n`;
-            electionsList += `   🕒 Created: <t:${timestamp}:R>\n`;
-            electionsList += `   📊 Status: ${election.status}\n\n`;
+            // Get current status
+            let currentStatus = election.status;
+            if (election.startTime && election.endTime) {
+                const startTime = new Date(election.startTime);
+                const endTime = new Date(election.endTime);
+                const now = new Date();
+                
+                if (now < startTime) {
+                    currentStatus = 'upcoming';
+                } else if (now >= startTime && now <= endTime) {
+                    currentStatus = 'active';
+                } else {
+                    currentStatus = 'ended';
+                }
+                
+                const startTimestamp = Math.floor(startTime.getTime() / 1000);
+                const endTimestamp = Math.floor(endTime.getTime() / 1000);
+                
+                electionsList += `🗳️  **${election.name}**\n`;
+                electionsList += `   👤 Created by: <@${election.createdBy}>\n`;
+                electionsList += `   🕒 Created: <t:${createdTimestamp}:R>\n`;
+                electionsList += `   ⏰ Starts: <t:${startTimestamp}:f> (<t:${startTimestamp}:R>)\n`;
+                electionsList += `   ⏰ Ends: <t:${endTimestamp}:f> (<t:${endTimestamp}:R>)\n`;
+                electionsList += `   📏 Duration: ${election.duration || 'N/A'}\n`;
+                electionsList += `   📊 Status: ${getStatusEmoji(currentStatus)} ${currentStatus}\n\n`;
+            } else {
+                // Legacy election without timing
+                electionsList += `🗳️  **${election.name}**\n`;
+                electionsList += `   👤 Created by: <@${election.createdBy}>\n`;
+                electionsList += `   🕒 Created: <t:${createdTimestamp}:R>\n`;
+                electionsList += `   📊 Status: ${getStatusEmoji(currentStatus)} ${currentStatus}\n\n`;
+            }
+        }
+        
+        function getStatusEmoji(status) {
+            switch(status) {
+                case 'upcoming': return '⏳';
+                case 'active': return '🟢';
+                case 'ended': return '🔴';
+                default: return '❓';
+            }
         }
         
         electionsList += `\n💡 **To participate:**\n`;

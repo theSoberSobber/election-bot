@@ -6,13 +6,28 @@ const simpleGit = require('simple-git');
 const ELECTIONS_FILE = path.join(__dirname, '..', 'elections.json');
 const VOTES_REPO_PATH = path.join(__dirname, '..', 'votes-repo');
 
-// Load users from JSON file
-function loadUsers() {
+// Load elections from JSON file
+function loadElections() {
     try {
-        if (!fs.existsSync(USERS_FILE)) {
+        if (!fs.existsSync(ELECTIONS_FILE)) {
+            return {};
+        }
+        const data = fs.readFileSync(ELECTIONS_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Error loading elections file:', error);
+        return {};
+    }
+}
+
+// Load users from election-specific JSON file
+function loadUsers(electionName) {
+    const usersFile = path.join(__dirname, '..', `users-${electionName}.json`);
+    try {
+        if (!fs.existsSync(usersFile)) {
             return [];
         }
-        const data = fs.readFileSync(USERS_FILE, 'utf8');
+        const data = fs.readFileSync(usersFile, 'utf8');
         return JSON.parse(data);
     } catch (error) {
         console.error('Error loading users file:', error);
@@ -20,14 +35,14 @@ function loadUsers() {
     }
 }
 
-// Load votes from JSON file
-function loadVotes() {
+// Load votes from election-specific JSON file
+function loadVotes(electionName) {
+    const votesFile = path.join(__dirname, '..', `votes-${electionName}.json`);
     try {
-        if (!fs.existsSync(VOTES_FILE)) {
-            fs.writeFileSync(VOTES_FILE, JSON.stringify([], null, 2));
+        if (!fs.existsSync(votesFile)) {
             return [];
         }
-        const data = fs.readFileSync(VOTES_FILE, 'utf8');
+        const data = fs.readFileSync(votesFile, 'utf8');
         return JSON.parse(data);
     } catch (error) {
         console.error('Error loading votes file:', error);
@@ -35,10 +50,11 @@ function loadVotes() {
     }
 }
 
-// Save votes to JSON file
-function saveVotes(votes) {
+// Save votes to election-specific JSON file
+function saveVotes(votes, electionName) {
+    const votesFile = path.join(__dirname, '..', `votes-${electionName}.json`);
     try {
-        fs.writeFileSync(VOTES_FILE, JSON.stringify(votes, null, 2));
+        fs.writeFileSync(votesFile, JSON.stringify(votes, null, 2));
         return true;
     } catch (error) {
         console.error('Error saving votes file:', error);
@@ -95,7 +111,7 @@ async function initializeVotesRepo() {
 }
 
 // Commit vote to GitHub repository
-async function commitVoteToGitHub(userId, username, signedMessage) {
+async function commitVoteToGitHub(userId, username, signedMessage, electionName) {
     console.log(`🚀 Starting vote commit process for user: ${username} (${userId})`);
     
     try {
@@ -113,8 +129,14 @@ async function commitVoteToGitHub(userId, username, signedMessage) {
             console.error('⚠️  Pull failed (might be first commit):', pullError.message);
         }
         
-        // Create vote file
-        const voteDir = path.join(VOTES_REPO_PATH, 'votes');
+        // Create election-specific vote directory and file
+        const electionDir = path.join(VOTES_REPO_PATH, 'elections', electionName);
+        if (!fs.existsSync(electionDir)) {
+            fs.mkdirSync(electionDir, { recursive: true });
+            console.log('✅ Created election directory:', electionDir);
+        }
+        
+        const voteDir = path.join(electionDir, 'votes');
         if (!fs.existsSync(voteDir)) {
             fs.mkdirSync(voteDir, { recursive: true });
             console.log('✅ Created votes directory');
@@ -122,6 +144,7 @@ async function commitVoteToGitHub(userId, username, signedMessage) {
         
         const voteFile = path.join(voteDir, `${userId}.txt`);
         const voteContent = `User: ${username} (${userId})
+Election: ${electionName}
 Timestamp: ${new Date().toISOString()}
 Signed Message:
 ${signedMessage}`;
@@ -131,7 +154,7 @@ ${signedMessage}`;
         
         // Commit and push
         await git.add('.');
-        await git.commit(`Add vote from user ${username} (${userId})`);
+        await git.commit(`Add vote from user ${username} (${userId}) in election ${electionName}`);
         
         const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
         const remoteUrl = `https://${token}@github.com/theSoberSobber/Votes.git`;
@@ -161,14 +184,51 @@ module.exports = {
                 .setRequired(true)),
     
     async execute(interaction) {
+        const electionName = interaction.options.getString('election');
         const signedMessage = interaction.options.getString('signed-message');
         const userId = interaction.user.id;
         const username = interaction.user.username;
         
-        console.log(`🗳️  Vote attempt by user: ${username} (${userId})`);
+        console.log(`🗳️  Vote attempt by user: ${username} for election: ${electionName}`);
         
-        // Check if user has submitted their public key
-        const users = loadUsers();
+        // Check if election exists and is active
+        const elections = loadElections();
+        if (!elections[electionName]) {
+            await interaction.reply({
+                content: `❌ **Election not found!**\n\nThe election \`${electionName}\` does not exist.\n\nUse \`/list-elections\` to see available elections.`,
+                ephemeral: true
+            });
+            return;
+        }
+        
+        // Check if election is active (if timing is configured)
+        const election = elections[electionName];
+        if (election.startTime && election.endTime) {
+            const now = new Date();
+            const startTime = new Date(election.startTime);
+            const endTime = new Date(election.endTime);
+            
+            if (now < startTime) {
+                const startTimestamp = Math.floor(startTime.getTime() / 1000);
+                await interaction.reply({
+                    content: `❌ **Election Not Started Yet!**\n\nThe election \`${electionName}\` hasn't started yet.\n\n⏰ **Starts:** <t:${startTimestamp}:f> (<t:${startTimestamp}:R>)\n\nVoting will be available when the election starts.`,
+                    ephemeral: true
+                });
+                return;
+            }
+            
+            if (now > endTime) {
+                const endTimestamp = Math.floor(endTime.getTime() / 1000);
+                await interaction.reply({
+                    content: `❌ **Election Has Ended!**\n\nThe election \`${electionName}\` has already ended.\n\n⏰ **Ended:** <t:${endTimestamp}:f> (<t:${endTimestamp}:R>)\n\nVoting is no longer allowed.`,
+                    ephemeral: true
+                });
+                return;
+            }
+        }
+        
+        // Check if user has submitted their public key for this election
+        const users = loadUsers(electionName);
         const userHasKey = users.find(user => user.userId === userId);
         
         if (!userHasKey) {
@@ -179,8 +239,8 @@ module.exports = {
             return;
         }
         
-        // Check if user has already voted
-        const votes = loadVotes();
+        // Check if user has already voted in this election
+        const votes = loadVotes(electionName);
         const existingVote = votes.find(vote => vote.userId === userId);
         
         if (existingVote) {
@@ -234,7 +294,7 @@ module.exports = {
                 await buttonInteraction.deferUpdate();
                 
                 // Double-check they haven't voted in the meantime
-                const currentVotes = loadVotes();
+                const currentVotes = loadVotes(electionName);
                 const doubleCheckVote = currentVotes.find(vote => vote.userId === userId);
                 
                 if (doubleCheckVote) {
@@ -250,7 +310,7 @@ module.exports = {
                 let gitSuccess = false;
                 
                 try {
-                    gitSuccess = await commitVoteToGitHub(userId, username, signedMessage);
+                    gitSuccess = await commitVoteToGitHub(userId, username, signedMessage, electionName);
                 } catch (gitError) {
                     console.error('❌ Vote GitHub commit failed:', gitError.message);
                     gitSuccess = false;
@@ -267,7 +327,7 @@ module.exports = {
                     };
                     
                     currentVotes.push(voteObject);
-                    const saveSuccess = saveVotes(currentVotes);
+                    const saveSuccess = saveVotes(currentVotes, electionName);
                     
                     if (saveSuccess) {
                         await buttonInteraction.editReply({
