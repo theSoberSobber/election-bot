@@ -100,12 +100,26 @@ async function commitCandidateToGitHub(userId, username, name, emoji, agenda) {
             return false;
         }
         
-        // Pull latest changes
+        // Fetch and pull latest changes more robustly
         try {
-            await git.pull('origin', 'main');
-            console.log('✅ Successfully pulled latest changes');
-        } catch (pullError) {
-            console.error('⚠️  Pull failed (might be first commit):', pullError.message);
+            console.log('📥 Fetching latest changes...');
+            await git.fetch('origin');
+            console.log('✅ Fetch completed');
+            
+            try {
+                await git.pull('origin', 'main');
+                console.log('✅ Successfully pulled latest changes');
+            } catch (pullError) {
+                console.log('⚠️  Pull failed, trying to reset to remote state...');
+                try {
+                    await git.reset(['--hard', 'origin/main']);
+                    console.log('✅ Reset to remote state successful');
+                } catch (resetError) {
+                    console.log('⚠️  Reset failed, continuing with local state...');
+                }
+            }
+        } catch (fetchError) {
+            console.error('⚠️  Fetch failed (might be first commit):', fetchError.message);
         }
         
         // Create candidates directory and file

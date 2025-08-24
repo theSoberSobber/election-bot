@@ -112,14 +112,27 @@ async function commitToGitHub(userId, username, publicKey) {
         }
         console.log('✅ Step 1 completed: Git repository ready');
         
-        // Step 2: Pull latest changes
-        console.log('📝 Step 2: Pulling latest changes...');
+        // Step 2: Fetch and pull latest changes more robustly
+        console.log('📝 Step 2: Fetching and pulling latest changes...');
         try {
-            await git.pull('origin', 'main');
-            console.log('✅ Step 2 completed: Successfully pulled latest changes');
-        } catch (pullError) {
-            console.error('⚠️  Step 2 warning: Pull failed (might be first commit):', pullError.message);
-            // Continue anyway - might be first commit
+            console.log('📥 Fetching latest changes...');
+            await git.fetch('origin');
+            console.log('✅ Fetch completed');
+            
+            try {
+                await git.pull('origin', 'main');
+                console.log('✅ Step 2 completed: Successfully pulled latest changes');
+            } catch (pullError) {
+                console.log('⚠️  Pull failed, trying to reset to remote state...');
+                try {
+                    await git.reset(['--hard', 'origin/main']);
+                    console.log('✅ Reset to remote state successful');
+                } catch (resetError) {
+                    console.log('⚠️  Reset failed, continuing with local state...');
+                }
+            }
+        } catch (fetchError) {
+            console.error('⚠️  Step 2 warning: Fetch failed (might be first commit):', fetchError.message);
         }
         
         // Step 3: Create user directory and files
