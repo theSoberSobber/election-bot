@@ -23,8 +23,7 @@ This static page allows you to:
 **Remember:** Your private key = Your money. Keep it safe! 🛡️`;
 
         await interaction.reply({
-            content: warningMessage,
-            ephemeral: true
+            content: warningMessage
         });
         
         console.log(`🔐 Provided security warning to user: ${interaction.user.username} (${interaction.user.id})`);

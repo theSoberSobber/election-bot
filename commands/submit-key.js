@@ -76,13 +76,11 @@ module.exports = {
         
         if (saveSuccess) {
             await interaction.reply({
-                content: `✅ **Public key stored successfully!**\n\`\`\`\nUser: ${username}\nKey: ${publicKey.substring(0, 20)}...\nStatus: ${existingUserIndex !== -1 ? 'Updated' : 'Added'}\n\`\`\``,
-                ephemeral: true
+                content: `✅ **Public key stored successfully!**\n\`\`\`\nUser: ${username}\nKey: ${publicKey.substring(0, 20)}...\nStatus: ${existingUserIndex !== -1 ? 'Updated' : 'Added'}\n\`\`\``
             });
         } else {
             await interaction.reply({
-                content: '❌ **Error storing public key.** Please try again later.',
-                ephemeral: true
+                content: '❌ **Error storing public key.** Please try again later.'
             });
         }
     },
