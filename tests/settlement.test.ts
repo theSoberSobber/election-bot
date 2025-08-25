@@ -13,31 +13,33 @@ describe('Settlement Logic', () => {
     parties: {
       PartyA: {
         name: 'PartyA',
-        emoji: '🔵',
-        agenda: 'Test agenda A',
+        emoji: '�',
+        agenda: 'Red agenda',
         leaderId: 'leader1',
         members: ['leader1', 'member1'],
-        vault: 10000000, // 10 coins
-        pool: 30000000,  // 30 coins
-        issuedTokens: 1000,
-        soldTokens: 500,
-        alpha: 0.6,
-        k: 30000000 * 1000,
-        tokenHolders: { 'holder1': 300, 'holder2': 200 },
+        vault: 5000000, // 5 coins
+        pool: 15000000, // 15 coins
+        issuedTokens: 100,
+        soldTokens: 20,
+        alpha: 0.7,
+        k: 0,
+        tokenHolders: { 'holder1': 10000000, 'holder2': 10000000 }, // 10M microcoins each
+        transactions: [],
       },
       PartyB: {
         name: 'PartyB',
-        emoji: '🔴',
-        agenda: 'Test agenda B',
+        emoji: '�',
+        agenda: 'Yellow agenda',
         leaderId: 'leader2',
         members: ['leader2'],
-        vault: 5000000,  // 5 coins
-        pool: 20000000,  // 20 coins
-        issuedTokens: 800,
-        soldTokens: 400,
-        alpha: 0.7,
-        k: 20000000 * 800,
-        tokenHolders: { 'holder3': 400 },
+        vault: 8000000, // 8 coins
+        pool: 12000000, // 12 coins
+        issuedTokens: 50,
+        soldTokens: 10,
+        alpha: 0.5,
+        k: 0,
+        tokenHolders: { 'holder3': 10000000 }, // 10M microcoins
+        transactions: [],
       },
     },
     reserved: {},

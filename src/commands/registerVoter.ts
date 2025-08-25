@@ -9,6 +9,12 @@ export const registerVoterCommand: SlashCommand = {
     .setDescription('Register your RSA public key for voting')
     .addStringOption(option =>
       option
+        .setName('election')
+        .setDescription('Election name or ID to register for')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option
         .setName('publickey')
         .setDescription('Your RSA public key in PEM format')
         .setRequired(true)
@@ -20,10 +26,11 @@ export const registerVoterCommand: SlashCommand = {
       return;
     }
 
+    const electionName = interaction.options.get('election')?.value as string;
     const publicKeyPem = interaction.options.get('publickey')?.value as string;
 
-    if (!publicKeyPem) {
-      await interaction.reply({ content: 'Public key is required.' });
+    if (!electionName || !publicKeyPem) {
+      await interaction.reply({ content: 'All fields are required.' });
       return;
     }
 
@@ -62,6 +69,8 @@ export const registerVoterCommand: SlashCommand = {
 
       await interaction.editReply({
         content: `✅ Successfully registered for voting!\n\n` +
+                 `**Election:** ${electionName}\n` +
+                 `**Voter:** <@${interaction.user.id}>\n\n` +
                  `Your RSA public key has been recorded. You can now vote using the \`/vote\` command with a properly signed message.`,
       });
 

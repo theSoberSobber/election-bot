@@ -19,7 +19,8 @@ export function calculateTokenPrice(party: Party): number {
     throw new Error('No tokens available for purchase');
   }
   
-  return safeDivide(party.k, remainingTokens);
+  // Simple pricing model: price = pool / remainingTokens
+  return safeDivide(party.pool, remainingTokens);
 }
 
 export function calculateBondPurchase(
@@ -35,16 +36,25 @@ export function calculateBondPurchase(
 
   const currentRemainingTokens = party.issuedTokens - party.soldTokens;
   const newPool = safeAdd(party.pool, poolContribution);
-  const newRemainingTokens = safeDivide(party.k, newPool);
-  const tokensAcquired = roundToMicrocoins(
-    safeSubtract(currentRemainingTokens, newRemainingTokens)
+  
+  // Simple model: we need to solve for how many tokens to give
+  // Current price = pool / remainingTokens
+  // We want to distribute tokens proportionally to the money added
+  // tokensAcquired = poolContribution / averagePrice
+  // averagePrice = (currentPool + newPool) / (2 * currentRemainingTokens)
+  
+  const currentPrice = safeDivide(party.pool, currentRemainingTokens);
+  const tokensAcquired = Math.min(
+    roundToMicrocoins(safeDivide(poolContribution, currentPrice)),
+    currentRemainingTokens - 1 // Always leave at least 1 token
   );
 
   if (tokensAcquired <= 0) {
     throw new Error('Insufficient coin spend to acquire tokens');
   }
 
-  const newPrice = safeDivide(party.k, newRemainingTokens);
+  const newRemainingTokens = currentRemainingTokens - tokensAcquired;
+  const newPrice = safeDivide(newPool, newRemainingTokens);
 
   return {
     tokensAcquired,
@@ -62,20 +72,20 @@ export function calculateBondSale(
     throw new Error('Tokens to sell must be positive');
   }
 
+  const soldTokens = party.soldTokens;
+  if (tokensToSell > soldTokens) {
+    throw new Error('Cannot sell more tokens than have been sold');
+  }
+
   const currentRemainingTokens = party.issuedTokens - party.soldTokens;
-  if (tokensToSell > currentRemainingTokens) {
-    throw new Error('Cannot sell more tokens than remaining supply');
-  }
-
   const newRemainingTokens = safeAdd(currentRemainingTokens, tokensToSell);
-  const newPool = safeDivide(party.k, newRemainingTokens);
-  const coinsRefunded = roundToMicrocoins(safeSubtract(party.pool, newPool));
-
-  if (coinsRefunded <= 0) {
-    throw new Error('No coins can be refunded for these tokens');
-  }
-
-  const newPrice = safeDivide(party.k, newRemainingTokens);
+  
+  // Simple model: refund based on current price
+  const currentPrice = safeDivide(party.pool, currentRemainingTokens);
+  const coinsRefunded = roundToMicrocoins(safeMultiply(tokensToSell, currentPrice));
+  
+  const newPool = safeSubtract(party.pool, coinsRefunded);
+  const newPrice = safeDivide(newPool, newRemainingTokens);
 
   return {
     coinsRefunded,

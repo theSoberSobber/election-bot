@@ -18,6 +18,7 @@ export interface Party {
   alpha: number;
   k: number; // constant product k = P * N
   tokenHolders: { [userId: string]: number };
+  transactions: BondTransaction[]; // Transaction history for price tracking
 }
 
 export interface Election {

@@ -131,7 +131,9 @@ export const createBondsCommand: SlashCommand = {
         party.issuedTokens = tokens;
         party.soldTokens = 0;
         party.alpha = alpha;
-        party.k = amountMicrocoins * tokens; // P * N
+        // Simple pricing: price = pool / remainingTokens
+        // No need for k constant in this model
+        party.k = 0; // Not used in simple price model
 
         // Clear reservation
         election.reserved[userId] = Math.max(0, (election.reserved[userId] || 0) - amountMicrocoins);
@@ -142,7 +144,8 @@ export const createBondsCommand: SlashCommand = {
       // Get updated data for display
       const updatedElection = await getPublicGist(interaction.guild.id);
       const updatedParty = updatedElection!.parties[partyName];
-      const initialPrice = updatedParty.k / updatedParty.issuedTokens;
+      const remainingTokens = updatedParty.issuedTokens - updatedParty.soldTokens;
+      const initialPrice = updatedParty.pool / remainingTokens; // Simple price = money / tokens
 
       await interaction.editReply({
         content: `✅ Election bonds created for party "${partyName}"!\n\n` +

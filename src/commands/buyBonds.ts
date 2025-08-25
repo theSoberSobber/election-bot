@@ -101,11 +101,25 @@ export const buyBondsCommand: SlashCommand = {
         election.reserved[userId] = (election.reserved[userId] || 0) + coinsMicrocoins;
 
         // Apply the purchase
-        election.parties[partyName] = applyBondPurchase(
+        const updatedParty = applyBondPurchase(
           election.parties[partyName], 
           userId, 
           purchaseResult
         );
+
+        // Record transaction
+        const transaction = {
+          type: 'buy' as const,
+          userId,
+          partyName,
+          coins: coinsMicrocoins,
+          tokens: purchaseResult.tokensAcquired,
+          timestamp: new Date().toISOString()
+        };
+        updatedParty.transactions = updatedParty.transactions || [];
+        updatedParty.transactions.push(transaction);
+
+        election.parties[partyName] = updatedParty;
 
         // Clear reservation
         election.reserved[userId] = Math.max(0, (election.reserved[userId] || 0) - coinsMicrocoins);

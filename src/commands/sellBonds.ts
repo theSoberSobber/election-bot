@@ -78,7 +78,21 @@ export const sellBondsCommand: SlashCommand = {
         election.reserved[userId] = (election.reserved[userId] || 0) + refundMicrocoins;
 
         // Apply the sale
-        election.parties[partyName] = applyBondSale(party, userId, tokens, saleResult);
+        const updatedParty = applyBondSale(party, userId, tokens, saleResult);
+
+        // Record transaction
+        const transaction = {
+          type: 'sell' as const,
+          userId,
+          partyName,
+          coins: saleResult.coinsRefunded,
+          tokens: tokens,
+          timestamp: new Date().toISOString()
+        };
+        updatedParty.transactions = updatedParty.transactions || [];
+        updatedParty.transactions.push(transaction);
+
+        election.parties[partyName] = updatedParty;
 
         // Clear reservation
         election.reserved[userId] = Math.max(0, (election.reserved[userId] || 0) - refundMicrocoins);

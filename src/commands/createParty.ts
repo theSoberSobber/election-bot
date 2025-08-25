@@ -109,6 +109,7 @@ export const createPartyCommand: SlashCommand = {
           alpha: 0,
           k: 0,
           tokenHolders: {},
+          transactions: [], // Initialize transaction history
         };
 
         election.parties[name] = newParty;

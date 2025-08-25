@@ -37,24 +37,7 @@ export const checkBalanceCommand: SlashCommand = {
       const balanceEmbed = new EmbedBuilder()
         .setColor(0x00ff00)
         .setTitle('💰 Your Balance')
-        .setDescription(`<@${userId}>'s current balance`)
-        .addFields(
-          {
-            name: '🪙 Total Balance',
-            value: `${totalBalance.toFixed(6)} coins`,
-            inline: true
-          },
-          {
-            name: '🎯 Base Amount',
-            value: `${baseBalance.toFixed(6)} coins`,
-            inline: true
-          },
-          {
-            name: '📊 Adjustments',
-            value: `${adjustments.toFixed(6)} coins`,
-            inline: true
-          }
-        )
+        .setDescription(`<@${userId}> has **${totalBalance.toFixed(6)} coins**`)
         .setFooter({ 
           text: 'Use /transfertoparty to fund your party vault!' 
         })

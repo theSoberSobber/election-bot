@@ -20,6 +20,8 @@ import { deleteElectionCommand } from './deleteElection';
 import { settleElectionCommand } from './settleElection';
 import { resetBotCommand } from './resetBot';
 import { helpCommand } from './help';
+import { plotBondCurveCommand } from './plotBondCurve';
+import { plotPriceHistoryCommand } from './plotPriceHistory';
 
 export async function initializeCommands(commands: Collection<string, SlashCommand>): Promise<void> {
   const commandList = [
@@ -34,6 +36,8 @@ export async function initializeCommands(commands: Collection<string, SlashComma
     createBondsCommand,
     buyBondsCommand,
     sellBondsCommand,
+    plotBondCurveCommand,
+    plotPriceHistoryCommand,
     registerVoterCommand,
     voteCommand,
     listPartiesCommand,

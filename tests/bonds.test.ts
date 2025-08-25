@@ -4,17 +4,18 @@ import { Party } from '../src/types';
 describe('Bond Economics', () => {
   const mockParty: Party = {
     name: 'TestParty',
-    emoji: '🔵',
+    emoji: '�',
     agenda: 'Test agenda',
     leaderId: 'leader123',
     members: ['leader123'],
     vault: 0,
-    pool: 50000000, // 50 coins in microcoins
-    issuedTokens: 1000,
+    pool: 10000000, // 10 coins in microcoins
+    issuedTokens: 10,
     soldTokens: 0,
-    alpha: 0.6,
-    k: 50000000 * 1000, // P * N
+    alpha: 1.0,
+    k: 100000000, // 100 microcoins
     tokenHolders: {},
+    transactions: [], // Add transaction history
   };
 
   test('calculateBondPurchase should work correctly', () => {
