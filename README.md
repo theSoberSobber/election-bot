@@ -16,11 +16,31 @@ A Discord bot for running democratic elections with token-based campaign finance
 
 ### Prerequisites
 
-- Node.js v18+
+- Node.js v18+ OR Docker
 - Discord application with bot token
 - GitHub Personal Access Token with gist permissions
 
-### Installation
+### Quick Start with Docker 🐳
+
+The easiest way to run the bot:
+
+1. Clone and configure:
+```bash
+git clone <repository-url>
+cd election-bot
+cp .env.example .env
+# Edit .env with your tokens
+```
+
+2. Run with Docker Compose:
+```bash
+docker-compose up -d
+docker-compose exec election-bot npm run deploy-commands
+```
+
+See [DOCKER.md](DOCKER.md) for detailed Docker deployment guide.
+
+### Manual Installation
 
 1. Clone this repository:
 ```bash

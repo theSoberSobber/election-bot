@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  election-bot:
+    build: .
+    container_name: election-bot
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_USERNAME=${GITHUB_USERNAME}
+      - GITHUB_GIST_ID=${GITHUB_GIST_ID}
+    env_file:
+      - .env
+    volumes:
+      # Mount logs directory (optional)
+      - ./logs:/app/logs
+    networks:
+      - election-bot-network
+    # Health check (optional)
+    healthcheck:
+      test: ["CMD", "node", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  election-bot-network:
+    driver: bridge
+
+volumes:
+  logs:
+    driver: local
