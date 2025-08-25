@@ -11,6 +11,33 @@ A Discord bot for running democratic elections with token-based campaign finance
 - **GitHub Gist Storage**: All data stored remotely in GitHub Gists (no local database)
 - **Party Management**: Create parties, join/leave, manage agendas
 - **Settlement**: Automatic end-of-election token liquidation and fund distribution
+- **Market Analytics**: Real-time bond curves and price history visualization
+- **Dockerized Deployment**: Production-ready containerization
+
+## Table of Contents
+
+- [Setup](#setup)
+  - [Quick Start with Docker](#quick-start-with-docker-)
+  - [Manual Installation](#manual-installation)
+- [Usage](#usage)
+  - [Server Setup](#server-setup)
+  - [Commands](#commands)
+- [Bond Finance Mechanics](#bond-finance-mechanics)
+  - [Bond Creation Process](#️-bond-creation-process)
+  - [Pricing Mechanism](#-pricing-mechanism)  
+  - [Fund Flow Architecture](#-fund-flow-architecture)
+  - [Trading Mechanics](#-trading-mechanics)
+  - [Market Analytics](#-market-analytics)
+  - [Economic Incentives](#-economic-incentives)
+  - [Settlement & Liquidation](#-settlement--liquidation)
+  - [Risk Management](#️-risk-management)
+- [System Architecture](#system-architecture)
+  - [Settlement Process](#settlement-process)
+  - [Data Storage](#data-storage)
+  - [Money Supply](#money-supply)
+  - [RSA Signature Voting](#rsa-signature-voting)
+- [Security Considerations](#security-considerations)
+- [Development](#development)
 
 ## Setup
 
@@ -107,20 +134,183 @@ npm start
 - `/createbonds <party> <amount> <tokens> <alpha>` - Issue bonds for your party
 
 #### Voting & Participation
-- `/register <publickey>` - Register RSA public key for voting
-- `/vote <party> <message> <signature>` - Cast your vote (requires RSA signature)
-- `/buybonds <party> <coins>` - Buy party bonds
+- `/register <election> <publickey>` - Register RSA public key for voting in specific election
+- `/vote <election> <party> <message> <signature>` - Cast your vote (requires RSA signature)
+
+#### Bond Finance & Trading
+- `/createbonds <party> <amount> <tokens> <alpha>` - Issue bonds for your party (leaders only)
+- `/buybonds <party> <coins>` - Buy party bonds (invest in party success)
+- `/sellbonds <party> <tokens>` - Sell bonds back to market during election
+- `/plotbondcurve <party>` - Display current bond pricing curve  
+- `/plotpricehistory <party>` - Show price history and recent transactions
+- `/balance` - Check your current coin balance
+- `/transfertoparty <party> <amount>` - Transfer coins to party vault
+
+#### Campaign & Operations  
 - `/campaign <party> <headline> <body>` - Create campaign post (costs party funds)
 
-### Bond Economics
+### Bond Finance Mechanics
 
-The bot implements a **constant product bonding curve** for party financing:
+ElectionBot implements a sophisticated **token-based campaign finance system** using bonding curves for price discovery and automated market making.
 
-- **Initial Setup**: Party leader commits P coins and issues N tokens → `k = P × N`
-- **Token Price**: Current price = `k ÷ remaining_tokens`
-- **Purchase Split**: When buying with coins, `alpha` portion goes to pool, `(1-alpha)` goes to vault
-- **Pool**: Used for token price discovery
-- **Vault**: Accumulated campaign funds, distributed to members at election end
+#### 🏗️ Bond Creation Process
+
+**Step 1: Initialize Party Bonds**
+```bash
+/createbonds party:DemocratParty amount:100 tokens:50 alpha:0.7
+```
+
+- **Initial Pool**: 100 coins committed by party leader
+- **Token Supply**: 50 tokens issued for trading
+- **Alpha Parameter**: 0.7 (70% of purchases go to liquidity, 30% to vault)
+- **Initial Price**: `pool ÷ tokens = 100 ÷ 50 = 2.0 coins/token`
+
+#### 📈 Pricing Mechanism
+
+**Simple Supply-Demand Model** (Updated from constant product):
+- **Current Price** = `Pool ÷ Remaining Tokens`
+- **After Purchase**: Price = `(Pool + New Money) ÷ (Tokens - Sold Tokens)`
+
+**Example Price Evolution**:
+1. **Initial**: 100 coins ÷ 50 tokens = 2.0 coins/token
+2. **After buying 10 tokens with 25 coins**: (100 + 17.5) ÷ (50 - 10) = 2.94 coins/token
+3. **Market dynamics**: More demand → Higher prices → Incentivizes early supporters
+
+#### 💰 Fund Flow Architecture
+
+When a user buys bonds with **X coins**:
+
+```
+User Payment (X coins)
+         ↓
+    Split by Alpha
+         ↓
+┌─────────────────┬─────────────────┐
+│   Pool Fund     │   Vault Fund    │
+│  (Alpha × X)    │ (1-Alpha) × X   │
+│                 │                 │
+│ • Price calc    │ • Campaign fund │
+│ • Liquidity     │ • Operations    │
+│ • Buybacks      │ • Member payouts│
+└─────────────────┴─────────────────┘
+```
+
+**Alpha Parameter Effects**:
+- **High Alpha (0.8-1.0)**: Liquid market, stable pricing, less campaign funds
+- **Medium Alpha (0.5-0.7)**: Balanced liquidity and operations
+- **Low Alpha (0.1-0.4)**: More campaign funds, volatile pricing
+
+#### 🔄 Trading Mechanics
+
+**Buying Bonds**:
+```bash
+/buybonds party:DemocratParty amount:50
+```
+1. User spends 50 coins
+2. Pool gets `alpha × 50` coins (e.g., 35 coins if alpha=0.7)
+3. Vault gets `(1-alpha) × 50` coins (e.g., 15 coins if alpha=0.7)
+4. User receives tokens based on current price
+5. Price increases due to reduced supply
+
+**Selling Bonds**:
+```bash
+/sellbonds party:DemocratParty tokens:10
+```
+1. User sells 10 tokens back to the system
+2. Coins refunded from pool based on current price
+3. Price decreases as token supply increases
+4. Only works during election period
+
+#### 📊 Market Analytics
+
+**Real-time Bond Curve**:
+```bash
+/plotbondcurve party:DemocratParty
+```
+- Visual ASCII chart showing price vs tokens sold
+- Current market status and metrics
+- Helps users understand pricing dynamics
+
+**Historical Price Tracking**:
+```bash
+/plotpricehistory party:DemocratParty
+```
+- Time-series plot of all buy/sell transactions
+- Price evolution over election period
+- Market sentiment analysis
+
+#### 🎯 Economic Incentives
+
+**For Early Supporters**:
+- Lower entry prices when buying early
+- Higher potential returns if party wins
+- Influence party agenda through financial stake
+
+**For Party Leaders**:
+- Campaign funding through bond sales
+- Market validation of party support
+- Incentive to maintain supporter confidence
+
+**For Traders**:
+- Speculation on election outcomes
+- Arbitrage opportunities between parties
+- Risk/reward based on political analysis
+
+#### 🏆 Settlement & Liquidation
+
+**During Election End**:
+
+1. **Pool Consolidation**: All party pools merged into winner's pool
+2. **Final Price Calculation**: 
+   ```
+   Final Price = Total Combined Pool ÷ Winning Party Total Tokens
+   ```
+3. **Winner Token Redemption**: 
+   ```
+   Payout = User's Tokens × Final Price
+   ```
+4. **Vault Distribution**: Each party's vault split equally among members
+5. **Losing Tokens**: Become worthless (total loss)
+
+**Example Settlement**:
+```
+Party A (Winner): 200 coin pool, 100 tokens issued
+Party B (Loser):  150 coin pool, 75 tokens issued
+
+Combined Pool: 350 coins
+Final Price: 350 ÷ 100 = 3.5 coins/token
+
+Party A token holder with 20 tokens gets: 20 × 3.5 = 70 coins
+Party B tokens become worthless: 0 coins
+```
+
+#### ⚖️ Risk Management
+
+**For Investors**:
+- **Political Risk**: Backing losing party = total loss
+- **Timing Risk**: Early vs late entry price differences  
+- **Liquidity Risk**: Limited trading during election period
+
+**For Parties**:
+- **Market Confidence**: Poor performance affects fundraising
+- **Alpha Selection**: Balance between liquidity and campaign funds
+- **Competition**: Multiple parties competing for same investor pool
+
+#### 🧮 Mathematical Properties
+
+**Price Elasticity**:
+- Price impact increases as tokens become scarce
+- Large purchases have bigger price effects near token depletion
+- Symmetric for buying/selling during active trading
+
+**Equilibrium Dynamics**:
+- Market makers balance expected election outcome vs current price
+- Price discovery through collective betting on party success
+- Self-reinforcing cycles: success → higher prices → more funding → better campaigns
+
+This system creates a **prediction market** where token prices reflect real-time sentiment about each party's chances of winning, while simultaneously funding their campaigns through the vault mechanism.
+
+## System Architecture
 
 ### Settlement Process
 
