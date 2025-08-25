@@ -2,10 +2,10 @@
   "name": "election-bot",
   "version": "1.0.0",
   "description": "A Discord bot for running elections with token-based campaign finance",
-  "main": "dist/src/index.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/src/index.js",
+    "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "test": "jest",
     "test:watch": "jest --watch",

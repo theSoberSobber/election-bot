@@ -5,13 +5,6 @@ services:
     build: .
     container_name: election-bot
     restart: unless-stopped
-    environment:
-      - NODE_ENV=production
-      - DISCORD_TOKEN=${DISCORD_TOKEN}
-      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
-      - GITHUB_USERNAME=${GITHUB_USERNAME}
-      - GITHUB_GIST_ID=${GITHUB_GIST_ID}
     env_file:
       - .env
     volumes:
