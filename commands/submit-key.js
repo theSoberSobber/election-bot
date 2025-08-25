@@ -2,10 +2,9 @@ const { SlashCommandBuilder } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
 const NodeRSA = require('node-rsa');
-const simpleGit = require('simple-git');
+const { submitPublicKey } = require('../utils/github');
 
 const ELECTIONS_FILE = path.join(__dirname, '..', 'elections.json');
-const REPO_PATH = path.join(__dirname, '..', 'public-keys-repo');
 
 // Load elections from JSON file
 function loadElections() {
@@ -55,159 +54,6 @@ function validateRSAKey(publicKeyString) {
         key.importKey(publicKeyString, 'public');
         return key.getKeySize() > 0; // Check if key is valid
     } catch (error) {
-        return false;
-    }
-}
-
-// Initialize and setup git repository with fresh clone strategy
-async function initializeGitRepo() {
-    try {
-        console.log('🔄 Initializing Git repository...');
-        const git = simpleGit();
-        
-        // Check GitHub token availability
-        const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
-        console.log('🔑 GitHub token available:', token ? 'YES' : 'NO');
-        
-        // Always use fresh clone to avoid sync issues
-        console.log('🗑️  Removing existing repository to ensure clean state...');
-        if (fs.existsSync(REPO_PATH)) {
-            fs.rmSync(REPO_PATH, { recursive: true, force: true });
-            console.log('✅ Old repository removed');
-        }
-        
-        console.log('📁 Cloning fresh repository...');
-        try {
-            const cloneUrl = `https://${token}@github.com/theSoberSobber/Public-Keys.git`;
-            await git.clone(cloneUrl, REPO_PATH);
-            console.log('✅ Fresh repository cloned successfully to:', REPO_PATH);
-        } catch (cloneError) {
-            console.error('❌ Error cloning repository:', cloneError.message);
-            console.error('   Full error:', cloneError);
-            return null;
-        }
-        
-        const repoGit = simpleGit(REPO_PATH);
-        
-        // Configure git credentials
-        if (token) {
-            try {
-                await repoGit.addConfig('user.name', 'Discord Bot');
-                await repoGit.addConfig('user.email', 'bot@example.com');
-                console.log('✅ Git credentials configured successfully');
-            } catch (configError) {
-                console.error('❌ Error configuring git credentials:', configError.message);
-                console.error('   Full error:', configError);
-            }
-        } else {
-            console.error('❌ No GitHub token available for authentication');
-        }
-        
-        console.log('✅ Git repository initialization complete');
-        return repoGit;
-        
-    } catch (error) {
-        console.error('❌ Fatal error in initializeGitRepo:', error.message);
-        console.error('   Full error:', error);
-        return null;
-    }
-}
-
-// Commit public key to GitHub repository
-async function commitToGitHub(userId, username, publicKey, electionName) {
-    console.log(`🚀 Starting GitHub commit process for user: ${username} (${userId})`);
-    
-    try {
-        // Step 1: Initialize Git repository
-        console.log('📝 Step 1: Initializing Git repository...');
-        const git = await initializeGitRepo();
-        if (!git) {
-            console.error('❌ Failed to initialize Git repository');
-            return false;
-        }
-        console.log('✅ Step 1 completed: Git repository ready');
-        
-        // Step 2: Repository is fresh and up-to-date 
-        console.log('📝 Step 2: Repository is fresh with latest changes');
-        console.log('✅ Step 2 completed: No sync needed for fresh clone')
-        
-        // Step 3: Create election-specific user directory and files
-        console.log('📝 Step 3: Creating election-specific user files...');
-        const electionDir = path.join(REPO_PATH, 'elections', electionName);
-        if (!fs.existsSync(electionDir)) {
-            fs.mkdirSync(electionDir, { recursive: true });
-            console.log('   ✅ Created election directory:', electionDir);
-        }
-        
-        const userDir = path.join(electionDir, 'users', userId);
-        console.log('   User directory path:', userDir);
-        
-        if (!fs.existsSync(userDir)) {
-            fs.mkdirSync(userDir, { recursive: true });
-            console.log('   ✅ Created user directory');
-        } else {
-            console.log('   ✅ User directory already exists');
-        }
-        
-        // Write public key file
-        const keyFile = path.join(userDir, 'public_key.pem');
-        fs.writeFileSync(keyFile, publicKey);
-        console.log('   ✅ Written public key file:', keyFile);
-        
-        // Write user info file
-        const infoFile = path.join(userDir, 'info.json');
-        const userInfo = {
-            userId: userId,
-            username: username,
-            submittedAt: new Date().toISOString()
-        };
-        fs.writeFileSync(infoFile, JSON.stringify(userInfo, null, 2));
-        console.log('   ✅ Written user info file:', infoFile);
-        console.log('✅ Step 3 completed: User files created');
-        
-        // Step 4: Add files to git
-        console.log('📝 Step 4: Adding files to git...');
-        await git.add('.');
-        console.log('✅ Step 4 completed: Files added to git staging');
-        
-        // Step 5: Commit changes
-        console.log('📝 Step 5: Committing changes...');
-        const commitMessage = `Add/Update public key for user ${username} (${userId}) in election ${electionName}`;
-        await git.commit(commitMessage);
-        console.log('✅ Step 5 completed: Changes committed with message:', commitMessage);
-        
-        // Step 6: Push to GitHub
-        console.log('📝 Step 6: Pushing to GitHub...');
-        const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
-        if (!token) {
-            console.error('❌ No GitHub token available for push');
-            return false;
-        }
-        
-        const remoteUrl = `https://${token}@github.com/theSoberSobber/Public-Keys.git`;
-        console.log('   Remote URL configured (token hidden for security)');
-        
-        await git.push(remoteUrl, 'main');
-        console.log('✅ Step 6 completed: Successfully pushed to GitHub');
-        
-        console.log(`🎉 Successfully committed public key for ${username} to GitHub repository!`);
-        return true;
-        
-    } catch (error) {
-        console.error('❌ Fatal error in commitToGitHub process:');
-        console.error('   Error message:', error.message);
-        console.error('   Error code:', error.code || 'N/A');
-        console.error('   Error stack:', error.stack);
-        
-        // Additional error context
-        if (error.message.includes('Authentication')) {
-            console.error('🔑 Authentication issue - check GitHub token');
-        } else if (error.message.includes('Permission')) {
-            console.error('🔐 Permission issue - check repository access');
-        } else if (error.message.includes('Network')) {
-            console.error('🌐 Network issue - check internet connection');
-        }
-        
         return false;
     }
 }
@@ -282,7 +128,7 @@ module.exports = {
         let gitSuccess = false;
         
         try {
-            gitSuccess = await commitToGitHub(userId, username, publicKey, electionName);
+            gitSuccess = await submitPublicKey(userId, username, publicKey, electionName);
         } catch (gitError) {
             console.error('❌ GitHub commit failed with exception:', gitError.message);
             console.error('   Full error:', gitError);

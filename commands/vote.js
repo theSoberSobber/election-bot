@@ -1,10 +1,9 @@
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
-const simpleGit = require('simple-git');
+const { submitVote } = require('../utils/github');
 
 const ELECTIONS_FILE = path.join(__dirname, '..', 'elections.json');
-const VOTES_REPO_PATH = path.join(__dirname, '..', 'votes-repo');
 
 // Load elections from JSON file
 function loadElections() {
@@ -58,114 +57,6 @@ function saveVotes(votes, electionName) {
         return true;
     } catch (error) {
         console.error('Error saving votes file:', error);
-        return false;
-    }
-}
-
-// Initialize votes repository
-async function initializeVotesRepo() {
-    try {
-        console.log('🔄 Initializing Votes repository...');
-        const git = simpleGit();
-        
-        const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
-        console.log('🔑 GitHub token available:', token ? 'YES' : 'NO');
-        
-        if (!fs.existsSync(VOTES_REPO_PATH)) {
-            console.log('📁 Votes repository not found locally, cloning...');
-            try {
-                // Use token in clone URL for authentication
-                const cloneUrl = `https://${token}@github.com/theSoberSobber/Votes.git`;
-                console.log('🔗 Using authenticated clone URL (token hidden for security)');
-                await git.clone(cloneUrl, VOTES_REPO_PATH);
-                console.log('✅ Votes repository cloned successfully to:', VOTES_REPO_PATH);
-            } catch (cloneError) {
-                console.error('❌ Error cloning votes repository:', cloneError.message);
-                console.error('   This might be due to:');
-                console.error('   - Token lacks access to theSoberSobber/Votes repository');
-                console.error('   - Repository is private and token needs repo permissions');
-                console.error('   - Token has expired or been revoked');
-                return null;
-            }
-        } else {
-            console.log('📁 Votes repository already exists at:', VOTES_REPO_PATH);
-        }
-        
-        const repoGit = simpleGit(VOTES_REPO_PATH);
-        
-        if (token) {
-            try {
-                await repoGit.addConfig('user.name', 'Discord Bot');
-                await repoGit.addConfig('user.email', 'bot@example.com');
-                console.log('✅ Votes repo git credentials configured');
-            } catch (configError) {
-                console.error('❌ Error configuring votes repo git credentials:', configError.message);
-            }
-        }
-        
-        return repoGit;
-    } catch (error) {
-        console.error('❌ Fatal error in initializeVotesRepo:', error.message);
-        return null;
-    }
-}
-
-// Commit vote to GitHub repository
-async function commitVoteToGitHub(userId, username, signedMessage, electionName) {
-    console.log(`🚀 Starting vote commit process for user: ${username} (${userId})`);
-    
-    try {
-        const git = await initializeVotesRepo();
-        if (!git) {
-            console.error('❌ Failed to initialize votes repository');
-            return false;
-        }
-        
-        // Pull latest changes
-        try {
-            await git.pull('origin', 'main');
-            console.log('✅ Successfully pulled latest changes from votes repo');
-        } catch (pullError) {
-            console.error('⚠️  Pull failed (might be first commit):', pullError.message);
-        }
-        
-        // Create election-specific vote directory and file
-        const electionDir = path.join(VOTES_REPO_PATH, 'elections', electionName);
-        if (!fs.existsSync(electionDir)) {
-            fs.mkdirSync(electionDir, { recursive: true });
-            console.log('✅ Created election directory:', electionDir);
-        }
-        
-        const voteDir = path.join(electionDir, 'votes');
-        if (!fs.existsSync(voteDir)) {
-            fs.mkdirSync(voteDir, { recursive: true });
-            console.log('✅ Created votes directory');
-        }
-        
-        const voteFile = path.join(voteDir, `${userId}.txt`);
-        const voteContent = `User: ${username} (${userId})
-Election: ${electionName}
-Timestamp: ${new Date().toISOString()}
-Signed Message:
-${signedMessage}`;
-        
-        fs.writeFileSync(voteFile, voteContent);
-        console.log('✅ Written vote file:', voteFile);
-        
-        // Commit and push
-        await git.add('.');
-        await git.commit(`Add vote from user ${username} (${userId}) in election ${electionName}`);
-        
-        const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
-        const remoteUrl = `https://${token}@github.com/theSoberSobber/Votes.git`;
-        await git.push(remoteUrl, 'main');
-        
-        console.log(`🎉 Successfully committed vote for ${username} to Votes repository!`);
-        return true;
-        
-    } catch (error) {
-        console.error('❌ Error committing vote to GitHub:', error.message);
-        console.error('   Full error:', error);
         return false;
     }
 }
@@ -310,7 +201,7 @@ module.exports = {
                 let gitSuccess = false;
                 
                 try {
-                    gitSuccess = await commitVoteToGitHub(userId, username, signedMessage, electionName);
+                    gitSuccess = await submitVote(userId, username, signedMessage, electionName);
                 } catch (gitError) {
                     console.error('❌ Vote GitHub commit failed:', gitError.message);
                     gitSuccess = false;

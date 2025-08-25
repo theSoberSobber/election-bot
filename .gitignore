@@ -47,11 +47,7 @@ Thumbs.db
 *.swo
 *~
 
-# Local repositories (these are cloned fresh each time)
-public-keys-repo/
-votes-repo/
-
-# Election data files (stored in GitHub, recreated locally)
+# Election data files (stored in GitHub, recreated locally for caching)
 elections.json
 users-*.json
 candidates-*.json

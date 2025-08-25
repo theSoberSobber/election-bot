@@ -1,10 +1,9 @@
 const { SlashCommandBuilder } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
-const simpleGit = require('simple-git');
+const { submitCandidate } = require('../utils/github');
 
 const ELECTIONS_FILE = path.join(__dirname, '..', 'elections.json');
-const REPO_PATH = path.join(__dirname, '..', 'public-keys-repo');
 
 // Load elections from JSON file
 function loadElections() {
@@ -58,128 +57,6 @@ function saveCandidates(candidates, electionName) {
         return true;
     } catch (error) {
         console.error('Error saving candidates file:', error);
-        return false;
-    }
-}
-
-// Initialize git repository with fresh clone strategy
-async function initializeGitRepo() {
-    try {
-        console.log('🔄 Initializing Git repository for candidate...');
-        const git = simpleGit();
-        
-        const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
-        console.log('🔑 GitHub token available:', token ? 'YES' : 'NO');
-        
-        // Always use fresh clone to avoid sync issues
-        console.log('🗑️  Removing existing repository to ensure clean state...');
-        if (fs.existsSync(REPO_PATH)) {
-            fs.rmSync(REPO_PATH, { recursive: true, force: true });
-            console.log('✅ Old repository removed');
-        }
-        
-        console.log('📁 Cloning fresh repository...');
-        try {
-            const cloneUrl = `https://${token}@github.com/theSoberSobber/Public-Keys.git`;
-            await git.clone(cloneUrl, REPO_PATH);
-            console.log('✅ Fresh repository cloned successfully to:', REPO_PATH);
-        } catch (cloneError) {
-            console.error('❌ Error cloning repository:', cloneError.message);
-            return null;
-        }
-        
-        const repoGit = simpleGit(REPO_PATH);
-        
-        if (token) {
-            try {
-                await repoGit.addConfig('user.name', 'Discord Bot');
-                await repoGit.addConfig('user.email', 'bot@example.com');
-                console.log('✅ Git credentials configured successfully');
-            } catch (configError) {
-                console.error('❌ Error configuring git credentials:', configError.message);
-            }
-        }
-        
-        return repoGit;
-    } catch (error) {
-        console.error('❌ Fatal error in initializeGitRepo:', error.message);
-        return null;
-    }
-}
-
-// Commit candidate info to GitHub repository
-async function commitCandidateToGitHub(userId, username, name, emoji, agenda, electionName) {
-    console.log(`🚀 Starting candidate commit process for user: ${username} (${userId})`);
-    
-    try {
-        const git = await initializeGitRepo();
-        if (!git) {
-            console.error('❌ Failed to initialize Git repository');
-            return false;
-        }
-        
-        // No need to pull - we have fresh clone with latest changes
-        console.log('✅ Repository is fresh and up-to-date')
-        
-        // Create election-specific candidates directory and file
-        const electionDir = path.join(REPO_PATH, 'elections', electionName);
-        if (!fs.existsSync(electionDir)) {
-            fs.mkdirSync(electionDir, { recursive: true });
-            console.log('✅ Created election directory:', electionDir);
-        }
-        
-        const candidatesDir = path.join(electionDir, 'candidates');
-        if (!fs.existsSync(candidatesDir)) {
-            fs.mkdirSync(candidatesDir, { recursive: true });
-            console.log('✅ Created candidates directory');
-        }
-        
-        const candidateFile = path.join(candidatesDir, `${userId}.json`);
-        const candidateInfo = {
-            userId: userId,
-            username: username,
-            name: name,
-            emoji: emoji,
-            agenda: agenda,
-            submittedAt: new Date().toISOString()
-        };
-        
-        fs.writeFileSync(candidateFile, JSON.stringify(candidateInfo, null, 2));
-        console.log('✅ Written candidate file:', candidateFile);
-        
-        // Update election candidates list file
-        const candidatesListFile = path.join(electionDir, 'candidates.json');
-        let allCandidates = [];
-        
-        if (fs.existsSync(candidatesListFile)) {
-            try {
-                allCandidates = JSON.parse(fs.readFileSync(candidatesListFile, 'utf8'));
-            } catch (e) {
-                allCandidates = [];
-            }
-        }
-        
-        // Remove existing entry for this user if any, then add new one
-        allCandidates = allCandidates.filter(c => c.userId !== userId);
-        allCandidates.push(candidateInfo);
-        
-        fs.writeFileSync(candidatesListFile, JSON.stringify(allCandidates, null, 2));
-        console.log('✅ Updated candidates list file');
-        
-        // Commit and push
-        await git.add('.');
-        await git.commit(`Add/Update candidate ${name} (${username} - ${userId}) in election ${electionName}`);
-        
-        const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
-        const remoteUrl = `https://${token}@github.com/theSoberSobber/Public-Keys.git`;
-        await git.push(remoteUrl, 'main');
-        
-        console.log(`🎉 Successfully committed candidate ${name} to GitHub repository!`);
-        return true;
-        
-    } catch (error) {
-        console.error('❌ Error committing candidate to GitHub:', error.message);
-        console.error('   Full error:', error);
         return false;
     }
 }
@@ -273,14 +150,15 @@ module.exports = {
         
         await interaction.deferReply();
         
-        // TRANSACTIONAL APPROACH: Commit to GitHub FIRST
+                // TRANSACTIONAL APPROACH: Commit to GitHub FIRST
         console.log(`🔄 Starting transactional candidate submission for user: ${username}`);
         let gitSuccess = false;
         
         try {
-            gitSuccess = await commitCandidateToGitHub(userId, username, name, emoji, agenda, electionName);
+            gitSuccess = await submitCandidate(userId, username, name, emoji, agenda, electionName);
         } catch (gitError) {
             console.error('❌ GitHub commit failed with exception:', gitError.message);
+            console.error('   Full error:', gitError);
             gitSuccess = false;
         }
         

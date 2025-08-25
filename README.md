@@ -20,7 +20,7 @@ A comprehensive Discord election bot built with Node.js and Discord.js v14. This
 2. **Public-Keys Repository**: Stores user RSA keys and candidate information
 3. **Votes Repository**: Stores all submitted votes
 
-The bot automatically clones and manages the external repositories for data persistence.
+The bot uses GitHub's REST API to directly manage files in the external repositories **without any local cloning**. This ensures clean deployments and eliminates local storage issues.
 
 ### Command Overview
 
@@ -185,7 +185,7 @@ elections/
 - **Cryptographic Voting**: Uses RSA signatures for vote authenticity
 - **GitHub Transparency**: All data publicly viewable on GitHub
 - **Role-Based Access**: Admin functions restricted to authorized users
-- **Fresh Repository Clones**: Avoids sync issues by cloning fresh data
+- **Remote-Only Operations**: No local repository cloning - works entirely via GitHub API
 - **Transactional Operations**: GitHub operations must succeed before local storage
 
 ## Development
@@ -209,11 +209,10 @@ elections/
 
 ### Local Development
 
-The bot automatically manages external repositories but keeps local copies in:
-- `public-keys-repo/` (ignored by git)
-- `votes-repo/` (ignored by git)
-
-These directories are recreated fresh during each operation to prevent sync issues.
+The bot works entirely through GitHub's REST API and maintains minimal local state:
+- Local JSON files for quick command responses (these are excluded from git)
+- No local repository clones needed
+- Clean deployments with no repository management overhead
 
 ## Troubleshooting
 

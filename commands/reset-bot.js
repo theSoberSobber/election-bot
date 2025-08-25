@@ -1,12 +1,11 @@
 const { SlashCommandBuilder } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
-const simpleGit = require('simple-git');
+const { clearAllRepositories } = require('../utils/github');
 
 const ELECTIONS_FILE = path.join(__dirname, '..', 'elections.json');
 const CANDIDATES_FILE = path.join(__dirname, '..', 'candidates.json');
 const VOTES_FILE = path.join(__dirname, '..', 'votes.json');
-const REPO_PATH = path.join(__dirname, '..', 'public-keys-repo');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -61,61 +60,25 @@ module.exports = {
                 }
             }
             
-            // 2. Clear local repository
-            if (fs.existsSync(REPO_PATH)) {
-                console.log('🗑️  Removing local repository...');
-                fs.rmSync(REPO_PATH, { recursive: true, force: true });
-                resetResults.push('✅ Deleted local repository copy');
-            }
+            // 2. Clear all local data files (elections, candidates, votes, user files)
+            console.log('🗑️  Clearing all local data files...');
             
-            // 3. Clear GitHub repositories
-            console.log('🗑️  Clearing GitHub repositories...');
-            const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+            // Clear election-specific files (users-*.json, candidates-*.json, votes-*.json)
+            const dataDir = path.dirname(ELECTIONS_FILE);
+            const allFiles = fs.readdirSync(dataDir);
             
-            if (token) {
-                try {
-                    // Clone fresh to get all current data
-                    const git = simpleGit();
-                    const cloneUrl = `https://${token}@github.com/theSoberSobber/Public-Keys.git`;
-                    await git.clone(cloneUrl, REPO_PATH);
-                    
-                    const repoGit = simpleGit(REPO_PATH);
-                    await repoGit.addConfig('user.name', 'Discord Bot');
-                    await repoGit.addConfig('user.email', 'bot@example.com');
-                    
-                    // Remove all contents except .git
-                    const items = fs.readdirSync(REPO_PATH);
-                    for (const item of items) {
-                        if (item !== '.git') {
-                            const itemPath = path.join(REPO_PATH, item);
-                            if (fs.lstatSync(itemPath).isDirectory()) {
-                                fs.rmSync(itemPath, { recursive: true, force: true });
-                            } else {
-                                fs.unlinkSync(itemPath);
-                            }
-                        }
-                    }
-                    
-                    // Create empty README
-                    fs.writeFileSync(path.join(REPO_PATH, 'README.md'), '# Public Keys Repository\n\nBot was reset - all data cleared.\n');
-                    
-                    // Commit the reset
-                    await repoGit.add('.');
-                    await repoGit.commit('🔥 Bot reset - all data cleared');
-                    await repoGit.push('origin', 'main');
-                    
-                    resetResults.push('✅ Cleared GitHub repository completely');
-                    
-                    // Final cleanup
-                    fs.rmSync(REPO_PATH, { recursive: true, force: true });
-                    
-                } catch (gitError) {
-                    console.error('❌ GitHub reset error:', gitError.message);
-                    resetResults.push(`❌ GitHub reset failed: ${gitError.message}`);
+            for (const file of allFiles) {
+                if (file.match(/^(users|candidates|votes)-.*\.json$/)) {
+                    const filePath = path.join(dataDir, file);
+                    fs.unlinkSync(filePath);
+                    resetResults.push(`✅ Deleted election data file: ${file}`);
                 }
-            } else {
-                resetResults.push('⚠️  No GitHub token - could not clear remote repository');
             }
+            
+            // 3. Clear GitHub repositories using API
+            console.log('🗑️  Clearing GitHub repositories via API...');
+            const githubResults = await clearAllRepositories();
+            resetResults.push(...githubResults);
             
             // 4. Success message
             const resultMessage = `🔥 **BOT COMPLETELY RESET**\n\n**Reset performed by:** ${username}\n**Timestamp:** <t:${Math.floor(Date.now() / 1000)}:f>\n\n**Actions taken:**\n${resetResults.join('\n')}\n\n✅ **The bot is now in fresh state.**\nAdmins can create new elections with \`/create-election\`.`;
