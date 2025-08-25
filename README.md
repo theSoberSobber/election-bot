@@ -1,10 +1,6 @@
 # ElectionBot
 
-A Discord bot### 🔐 Voter Registration
-![Register](assets/register.webp)
-*Register RSA public keys for secure voting*
-
-</div>
+A Discord bot that allows you to conduct cryptographically secure elections over discord and sell electoral bonds with automated price discovery!
 
 ## 🚀 Add to Your Discord Server
 
@@ -12,7 +8,7 @@ A Discord bot### 🔐 Voter Registration
 
 Ready to run democratic elections with token-based campaign finance? Click the link above to add ElectionBot to your Discord server instantly!
 
-## Featuresnning democratic elections with token-based campaign finance using GitHub Gists for persistent storage.
+## Featurinng democratic elections with token-based campaign finance using GitHub Gists for persistent storage.
 
 ## 📸 Screenshots & Demo
 
