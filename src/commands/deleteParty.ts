@@ -17,14 +17,14 @@ export const deletePartyCommand: SlashCommand = {
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!interaction.guild || !interaction.user) {
-      await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+      await interaction.reply({ content: 'This command can only be used in a server.' });
       return;
     }
 
     const partyName = interaction.options.getString('party', true);
 
     try {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply();
 
       // Get combined data
       const combinedData = await getCombinedData(interaction.guild.id);

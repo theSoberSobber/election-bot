@@ -15,42 +15,45 @@ export const helpCommand: SlashCommand = {
         {
           name: '🗳️ Election Management',
           value: 
-            '`/create-election` - Create a new election\n' +
-            '`/list-elections` - List all available elections\n' +
-            '`/delete-election` - Delete an election (owner only)',
+            '`/create` - Create a new election\n' +
+            '`/listelections` - List all available elections\n' +
+            '`/delete` - Delete an election (admin only)',
           inline: false
         },
         {
-          name: '🏛️ Campaign Management', 
+          name: '🏛️ Party Management', 
           value:
-            '`/register-candidate` - Register as a candidate in an election\n' +
-            '`/list-candidates` - List all candidates in an election\n' +
-            '`/create-party` - Create a political party\n' +
-            '`/join-party` - Join an existing party\n' +
-            '`/list-parties` - List all parties in an election',
+            '`/createparty` - Create a political party\n' +
+            '`/joinparty` - Join an existing party\n' +
+            '`/leaveparty` - Leave your current party\n' +
+            '`/editparty` - Edit your party details\n' +
+            '`/deleteparty` - Delete your party\n' +
+            '`/listparties` - List all parties in an election',
           inline: false
         },
         {
           name: '💰 Campaign Finance',
           value:
-            '`/check-balance` - Check your token balance\n' +
-            '`/donate` - Donate tokens to a candidate\n' +
-            '`/bond` - Post a performance bond for your candidacy\n' +
-            '`/settle` - Settle campaign finances after election ends',
+            '`/balance` - Check your coin balance\n' +
+            '`/transfertoparty` - Transfer coins to party vault\n' +
+            '`/createbonds` - Create bonds for a party\n' +
+            '`/buybonds` - Buy party bonds\n' +
+            '`/sellbonds` - Sell your party bonds\n' +
+            '`/settle` - Settle election results',
           inline: false
         },
         {
           name: '🗳️ Voting',
           value:
-            '`/start-vote` - Start voting phase for an election\n' +
+            '`/register` - Register as a voter\n' +
             '`/vote` - Cast your vote in an election\n' +
-            '`/end-election` - End an election and tally results',
+            '`/campaign` - Campaign for your party',
           inline: false
         },
         {
           name: '🔧 Utility',
           value:
-            '`/ping` - Check if the bot is responsive\n' +
+            '`/resetbot` - Reset bot data (admin only)\n' +
             '`/help` - Display this help message',
           inline: false
         }
@@ -61,8 +64,7 @@ export const helpCommand: SlashCommand = {
       .setTimestamp();
 
     await interaction.reply({ 
-      embeds: [helpEmbed], 
-      ephemeral: true 
+      embeds: [helpEmbed]
     });
   },
 };

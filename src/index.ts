@@ -76,8 +76,7 @@ client.on(Events.InteractionCreate, async interaction => {
     }
     
     const errorMessage = {
-      content: 'There was an error while executing this command!',
-      ephemeral: true
+      content: 'There was an error while executing this command!'
     };
 
     try {

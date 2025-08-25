@@ -29,7 +29,7 @@ export const campaignCommand: SlashCommand = {
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!interaction.guild || !interaction.user) {
-      await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+      await interaction.reply({ content: 'This command can only be used in a server.' });
       return;
     }
 
@@ -38,17 +38,17 @@ export const campaignCommand: SlashCommand = {
     const body = interaction.options.get('body')?.value as string;
 
     if (!partyName || !headline || !body) {
-      await interaction.reply({ content: 'All fields are required.', ephemeral: true });
+      await interaction.reply({ content: 'All fields are required.' });
       return;
     }
 
     if (headline.length > 100) {
-      await interaction.reply({ content: 'Headline must be 100 characters or less.', ephemeral: true });
+      await interaction.reply({ content: 'Headline must be 100 characters or less.' });
       return;
     }
 
     if (body.length > 1000) {
-      await interaction.reply({ content: 'Campaign body must be 1000 characters or less.', ephemeral: true });
+      await interaction.reply({ content: 'Campaign body must be 1000 characters or less.' });
       return;
     }
 
@@ -83,7 +83,7 @@ export const campaignCommand: SlashCommand = {
       // Check if party vault has enough funds
       if (party.vault < costMicrocoins) {
         await interaction.editReply({ 
-          content: `❌ Insufficient party vault funds. Required: ${cost} coins, Available: ${microcoinsToCoins(party.vault).toFixed(2)} coins` 
+          content: `❌ Insufficient party vault funds. Required: ${cost.toFixed(6)} coins, Available: ${microcoinsToCoins(party.vault).toFixed(6)} coins` 
         });
         return;
       }

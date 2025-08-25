@@ -9,6 +9,12 @@ export const createPartyCommand: SlashCommand = {
     .setDescription('Create a new political party')
     .addStringOption(option =>
       option
+        .setName('election')
+        .setDescription('Election name or ID')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option
         .setName('name')
         .setDescription('Party name')
         .setRequired(true)
@@ -28,37 +34,38 @@ export const createPartyCommand: SlashCommand = {
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!interaction.guild || !interaction.user) {
-      await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+      await interaction.reply({ content: 'This command can only be used in a server.' });
       return;
     }
 
+    const electionName = interaction.options.get('election')?.value as string;
     const name = interaction.options.get('name')?.value as string;
     const emoji = interaction.options.get('emoji')?.value as string;
     const agenda = interaction.options.get('agenda')?.value as string;
 
-    if (!name || !emoji || !agenda) {
-      await interaction.reply({ content: 'All fields are required.', ephemeral: true });
+    if (!electionName || !name || !emoji || !agenda) {
+      await interaction.reply({ content: 'All fields are required.' });
       return;
     }
 
     // Validate party name (alphanumeric and spaces only)
     if (!/^[a-zA-Z0-9\s]+$/.test(name)) {
-      await interaction.reply({ content: 'Party name can only contain letters, numbers, and spaces.', ephemeral: true });
+      await interaction.reply({ content: 'Party name can only contain letters, numbers, and spaces.' });
       return;
     }
 
     if (name.length > 50) {
-      await interaction.reply({ content: 'Party name must be 50 characters or less.', ephemeral: true });
+      await interaction.reply({ content: 'Party name must be 50 characters or less.' });
       return;
     }
 
     if (agenda.length > 500) {
-      await interaction.reply({ content: 'Party agenda must be 500 characters or less.', ephemeral: true });
+      await interaction.reply({ content: 'Party agenda must be 500 characters or less.' });
       return;
     }
 
     try {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply();
 
       // Get current election and common data
       const election = await getPublicGist(interaction.guild.id);

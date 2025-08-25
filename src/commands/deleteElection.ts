@@ -10,17 +10,17 @@ export const deleteElectionCommand: SlashCommand = {
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!interaction.guild) {
-      await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+      await interaction.reply({ content: 'This command can only be used in a server.' });
       return;
     }
 
     if (!(await hasAdminRole(interaction))) {
-      await interaction.reply({ content: 'You need the `electionBotAdmin` role to use this command.', ephemeral: true });
+      await interaction.reply({ content: 'You need the `electionBotAdmin` role to use this command.' });
       return;
     }
 
     try {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply();
 
       await deleteElectionGists(interaction.guild.id);
 

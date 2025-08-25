@@ -9,6 +9,12 @@ export const joinPartyCommand: SlashCommand = {
     .setDescription('Request to join a political party')
     .addStringOption(option =>
       option
+        .setName('election')
+        .setDescription('Election name or ID')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option
         .setName('party')
         .setDescription('Party name to join')
         .setRequired(true)
@@ -16,14 +22,15 @@ export const joinPartyCommand: SlashCommand = {
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!interaction.guild || !interaction.user) {
-      await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+      await interaction.reply({ content: 'This command can only be used in a server.' });
       return;
     }
 
+    const electionName = interaction.options.getString('election', true);
     const partyName = interaction.options.getString('party', true);
 
     try {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply();
 
       // Get combined data
       const combinedData = await getCombinedData(interaction.guild.id);
@@ -86,8 +93,7 @@ export const joinPartyCommand: SlashCommand = {
         // Only party leader can respond
         if (buttonInteraction.user.id !== leaderId) {
           await buttonInteraction.reply({
-            content: '❌ Only the party leader can respond to join requests.',
-            ephemeral: true,
+            content: '❌ Only the party leader can respond to join requests.'
           });
           return;
         }

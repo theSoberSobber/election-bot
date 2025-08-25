@@ -36,7 +36,7 @@ export const createBondsCommand: SlashCommand = {
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!interaction.guild || !interaction.user) {
-      await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+      await interaction.reply({ content: 'This command can only be used in a server.' });
       return;
     }
 
@@ -46,7 +46,7 @@ export const createBondsCommand: SlashCommand = {
     const alpha = interaction.options.get('alpha')?.value as number;
 
     if (!partyName || !amount || !tokens || alpha === undefined) {
-      await interaction.reply({ content: 'All fields are required.', ephemeral: true });
+      await interaction.reply({ content: 'All fields are required.' });
       return;
     }
 
@@ -55,12 +55,12 @@ export const createBondsCommand: SlashCommand = {
       validatePositiveInteger(tokens, 'Tokens');
       validateRange(alpha, 0, 1, 'Alpha');
     } catch (error) {
-      await interaction.reply({ content: (error as Error).message, ephemeral: true });
+      await interaction.reply({ content: (error as Error).message });
       return;
     }
 
     try {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply();
 
       const amountMicrocoins = coinsToMicrocoins(amount);
       const userId = interaction.user.id;

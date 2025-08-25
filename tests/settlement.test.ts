@@ -4,6 +4,7 @@ import { Election, Party, CommonData } from '../src/types';
 describe('Settlement Logic', () => {
   const mockElection: Election = {
     electionId: 'test-election',
+    name: 'Test Election',
     guildId: 'test-guild',
     createdAt: '2024-01-01T00:00:00.000Z',
     startAt: '2024-01-01T00:00:00.000Z',

@@ -12,12 +12,12 @@ export const settleElectionCommand: SlashCommand = {
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!interaction.guild) {
-      await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+      await interaction.reply({ content: 'This command can only be used in a server.' });
       return;
     }
 
     if (!(await hasAdminRole(interaction))) {
-      await interaction.reply({ content: 'You need the `electionBotAdmin` role to use this command.', ephemeral: true });
+      await interaction.reply({ content: 'You need the `electionBotAdmin` role to use this command.' });
       return;
     }
 

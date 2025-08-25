@@ -9,6 +9,12 @@ export const voteCommand: SlashCommand = {
     .setDescription('Cast your vote for a party')
     .addStringOption(option =>
       option
+        .setName('election')
+        .setDescription('Election name or ID')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option
         .setName('party')
         .setDescription('Party name to vote for')
         .setRequired(true)
@@ -28,7 +34,7 @@ export const voteCommand: SlashCommand = {
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!interaction.guild || !interaction.user) {
-      await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+      await interaction.reply({ content: 'This command can only be used in a server.' });
       return;
     }
 
@@ -37,12 +43,12 @@ export const voteCommand: SlashCommand = {
     const signature = interaction.options.get('signature')?.value as string;
 
     if (!partyName || !message || !signature) {
-      await interaction.reply({ content: 'All fields are required.', ephemeral: true });
+      await interaction.reply({ content: 'All fields are required.' });
       return;
     }
 
     try {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply();
 
       const election = await getPublicGist(interaction.guild.id);
       if (!election) {

@@ -22,13 +22,14 @@ export interface Party {
 
 export interface Election {
   electionId: string;
+  name: string;
   guildId: string;
   createdAt: string;
   startAt: string;
   durationHours: number;
   status: 'scheduled' | 'running' | 'ended' | 'finalized';
   parties: { [partyName: string]: Party };
-  reserved: { [userId: string]: number }; // pending reservations - election specific
+  reserved: { [userId: string]: number }; // pending reservations in microcoins
   registeredVoters: { [userId: string]: string }; // userId -> PEM public key
   meta: {
     version: number;
@@ -39,7 +40,7 @@ export interface Election {
 // New: Common persistent data across elections
 export interface CommonData {
   guildId: string;
-  balances: { [userId: string]: number }; // persistent user balances in microcoins
+  balances: { [userId: string]: number }; // persistent user balance adjustments in microcoins
   meta: {
     version: number;
     lastUpdated: string;

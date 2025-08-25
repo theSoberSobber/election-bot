@@ -23,7 +23,7 @@ export const editPartyCommand: SlashCommand = {
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!interaction.guild || !interaction.user) {
-      await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+      await interaction.reply({ content: 'This command can only be used in a server.' });
       return;
     }
 
@@ -31,12 +31,12 @@ export const editPartyCommand: SlashCommand = {
     const agenda = interaction.options.getString('agenda', true);
 
     if (agenda.length > 500) {
-      await interaction.reply({ content: 'Party agenda must be 500 characters or less.', ephemeral: true });
+      await interaction.reply({ content: 'Party agenda must be 500 characters or less.' });
       return;
     }
 
     try {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply();
 
       // Get election data
       const combinedData = await getCombinedData(interaction.guild.id);

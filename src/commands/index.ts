@@ -6,6 +6,8 @@ import { joinPartyCommand } from './joinParty';
 import { leavePartyCommand } from './leaveParty';
 import { editPartyCommand } from './editParty';
 import { deletePartyCommand } from './deleteParty';
+import { transferToPartyCommand } from './transferToParty';
+import { checkBalanceCommand } from './checkBalance';
 import { createBondsCommand } from './createBonds';
 import { buyBondsCommand } from './buyBonds';
 import { sellBondsCommand } from './sellBonds';
@@ -27,6 +29,8 @@ export async function initializeCommands(commands: Collection<string, SlashComma
     leavePartyCommand,
     editPartyCommand,
     deletePartyCommand,
+    transferToPartyCommand,
+    checkBalanceCommand,
     createBondsCommand,
     buyBondsCommand,
     sellBondsCommand,

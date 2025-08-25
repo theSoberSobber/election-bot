@@ -20,7 +20,7 @@ export const leavePartyCommand = {
       // Get election data
       const combinedData = await getCombinedData(guildId);
       if (!combinedData) {
-        await interaction.reply({ content: '❌ No election data found for this server.', ephemeral: true });
+        await interaction.reply({ content: '❌ No election data found for this server.' });
         return;
       }
 
@@ -28,7 +28,7 @@ export const leavePartyCommand = {
       
       // Check if party exists in election
       if (!election.parties[partyName]) {
-        await interaction.reply({ content: `❌ Party "${partyName}" does not exist in this election.`, ephemeral: true });
+        await interaction.reply({ content: `❌ Party "${partyName}" does not exist in this election.` });
         return;
       }
 
@@ -36,13 +36,13 @@ export const leavePartyCommand = {
       
       // Check if user is a member
       if (!party.members.includes(userId)) {
-        await interaction.reply({ content: `❌ You are not a member of "${partyName}".`, ephemeral: true });
+        await interaction.reply({ content: `❌ You are not a member of "${partyName}".` });
         return;
       }
 
       // Check if user is the party leader
       if (party.leaderId === userId) {
-        await interaction.reply({ content: '❌ Party leaders cannot leave their party. Use `/deleteparty` to delete the party instead.', ephemeral: true });
+        await interaction.reply({ content: '❌ Party leaders cannot leave their party. Use `/deleteparty` to delete the party instead.' });
         return;
       }
 
@@ -53,13 +53,12 @@ export const leavePartyCommand = {
       });
 
       await interaction.reply({
-        content: `✅ You have left the party "${partyName}" successfully!`,
-        ephemeral: true
+        content: `✅ You have left the party "${partyName}" successfully!`
       });
 
     } catch (error) {
       console.error('Error in leaveParty command:', error);
-      await interaction.reply({ content: '❌ An error occurred while leaving the party.', ephemeral: true });
+      await interaction.reply({ content: '❌ An error occurred while leaving the party.' });
     }
   }
 };

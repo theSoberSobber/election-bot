@@ -10,7 +10,7 @@ export const listPartiesCommand: SlashCommand = {
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!interaction.guild) {
-      await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+      await interaction.reply({ content: 'This command can only be used in a server.' });
       return;
     }
 
@@ -42,8 +42,8 @@ export const listPartiesCommand: SlashCommand = {
         response += `**Agenda:** ${party.agenda}\n`;
 
         // Financial info
-        response += `**Vault:** ${microcoinsToCoins(party.vault).toFixed(2)} coins\n`;
-        response += `**Pool:** ${microcoinsToCoins(party.pool).toFixed(2)} coins\n`;
+        response += `**Vault:** ${microcoinsToCoins(party.vault).toFixed(6)} coins\n`;
+        response += `**Pool:** ${microcoinsToCoins(party.pool).toFixed(6)} coins\n`;
         
         if (party.issuedTokens > 0) {
           const tokenPrice = party.k / (party.issuedTokens - party.soldTokens);
