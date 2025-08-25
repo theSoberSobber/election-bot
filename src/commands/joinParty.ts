@@ -91,6 +91,7 @@ export const joinPartyCommand: SlashCommand = {
 
       collector.on('collect', async (buttonInteraction) => {
         // Only party leader can respond
+        console.log(buttonInteraction.user.id, leaderId);
         if (buttonInteraction.user.id !== leaderId) {
           await buttonInteraction.reply({
             content: '❌ Only the party leader can respond to join requests.'

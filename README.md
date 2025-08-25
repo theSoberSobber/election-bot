@@ -1,6 +1,48 @@
 # ElectionBot
 
-A Discord bot for running democratic elections with token-based campaign finance using GitHub Gists for persistent storage.
+A Discord bot### 🔐 Voter Registration
+![Register](assets/register.webp)
+*Register RSA public keys for secure voting*
+
+</div>
+
+## 🚀 Add to Your Discord Server
+
+**[📥 Invite ElectionBot to Your Server](https://discord.com/api/oauth2/authorize?client_id=1409265397693415547&permissions=0&scope=bot%20applications.commands)**
+
+Ready to run democratic elections with token-based campaign finance? Click the link above to add ElectionBot to your Discord server instantly!
+
+## Featuresnning democratic elections with token-based campaign finance using GitHub Gists for persistent storage.
+
+## 📸 Screenshots & Demo
+
+<div align="center">
+
+### � Balance Management
+![Balance List](assets/BalanceList.png)
+*Check user coin balances and financial status*
+
+### 🏛️ Party Creation
+![Create Party](assets/createParty.webp)
+*Create political parties with custom emojis and agendas*
+
+### � Join Party
+![Join Party](assets/joinParty.webp)  
+*Request to join existing political parties*
+
+### 📊 Balance Tracking
+![List Balance](assets/listBalance.webp)
+*Monitor individual user account balances*
+
+### �️ Election Overview
+![List Elections](assets/listElections.webp)
+*View active elections and their current status*
+
+### � Voter Registration
+![Register](assets/register.webp)
+*Register RSA public keys for secure voting*
+
+</div>
 
 ## Features
 
@@ -16,6 +58,8 @@ A Discord bot for running democratic elections with token-based campaign finance
 
 ## Table of Contents
 
+- [📸 Screenshots & Demo](#-screenshots--demo)
+- [🚀 Add to Your Discord Server](#-add-to-your-discord-server)
 - [Setup](#setup)
   - [Quick Start with Docker](#quick-start-with-docker-)
   - [Manual Installation](#manual-installation)
@@ -123,31 +167,41 @@ npm start
 
 ### Commands
 
-#### Election Management (Admin Only)
-- `/create [start] [duration]` - Create a new election
-- `/delete` - Delete the current election
-- `/listparties` - List all parties in current election
+#### 🗳️ Election Management (Admin Only)
+- `/create <name> [start] [duration]` - Create a new election with specified name and timeline
+- `/delete` - Delete the current active election and all associated data
+- `/settle` - End the election and distribute funds to winning token holders
+- `/listelections` - Display all elections and their current status
+- `/resetbot` - Reset all bot data (use with caution)
 
-#### Party Management
-- `/createparty <name> <emoji> <agenda>` - Create a political party
-- `/joinparty <party>` - Request to join a party (requires leader approval)
-- `/createbonds <party> <amount> <tokens> <alpha>` - Issue bonds for your party
+#### 🏛️ Party Management  
+- `/createparty <election> <name> <emoji> <agenda>` - Create a political party in an election
+- `/joinparty <party>` - Request to join an existing party (requires leader approval)
+- `/leaveparty <party>` - Leave a party you're currently a member of
+- `/editparty <party> [emoji] [agenda]` - Update your party's emoji or agenda (leaders only)
+- `/deleteparty <party>` - Delete your party (leaders only, requires confirmation)
+- `/listparties` - Display all parties in the current election
 
-#### Voting & Participation
-- `/register <election> <publickey>` - Register RSA public key for voting in specific election
-- `/vote <election> <party> <message> <signature>` - Cast your vote (requires RSA signature)
-
-#### Bond Finance & Trading
+#### 💰 Bond Finance & Trading
 - `/createbonds <party> <amount> <tokens> <alpha>` - Issue bonds for your party (leaders only)
-- `/buybonds <party> <coins>` - Buy party bonds (invest in party success)
-- `/sellbonds <party> <tokens>` - Sell bonds back to market during election
-- `/plotbondcurve <party>` - Display current bond pricing curve  
-- `/plotpricehistory <party>` - Show price history and recent transactions
-- `/balance` - Check your current coin balance
-- `/transfertoparty <party> <amount>` - Transfer coins to party vault
+- `/buybonds <party> <amount>` - Buy party bonds to invest in their success
+- `/sellbonds <party> <tokens>` - Sell your bonds back to the market
+- `/plotbondcurve <party>` - Display interactive bond pricing curve
+- `/plotpricehistory <party>` - Show historical price data and recent transactions
 
-#### Campaign & Operations  
-- `/campaign <party> <headline> <body>` - Create campaign post (costs party funds)
+#### 💳 Financial Management
+- `/balance` - Check your current coin balance
+- `/transfertoparty <party> <amount>` - Transfer coins from your account to party vault
+
+#### 🗳️ Voting & Participation  
+- `/register <election> <publickey>` - Register RSA public key for secure voting
+- `/vote <election> <party> <message> <signature>` - Cast your vote using RSA signature
+
+#### 📢 Campaign Operations
+- `/campaign <party> <headline> <body>` - Create a campaign post (costs party funds)
+
+#### ❓ Information & Help
+- `/help` - Display comprehensive bot usage guide and command reference
 
 ### Bond Finance Mechanics
 
