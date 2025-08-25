@@ -10,31 +10,42 @@ async function deployCommands() {
   const token = process.env.DISCORD_TOKEN;
   const clientId = process.env.DISCORD_CLIENT_ID;
 
-  if (!token || !clientId) {
-    console.error('Missing DISCORD_TOKEN or DISCORD_CLIENT_ID in environment variables');
+  if (!token) {
+    console.error('❌ DISCORD_TOKEN not found in environment variables!');
     process.exit(1);
   }
 
+  if (!clientId) {
+    console.error('❌ DISCORD_CLIENT_ID not found in environment variables!');
+    process.exit(1);
+  }
+
+  console.log('🔧 Loading commands...');
   const commands = new Collection<string, SlashCommand>();
   await initializeCommands(commands);
 
-  const commandData = commands.map(command => command.data.toJSON());
+  const commandData = commands.map(command => {
+    console.log(`✅ Loaded command for deployment: ${command.data.name}`);
+    return command.data.toJSON();
+  });
 
   const rest = new REST({ version: '10' }).setToken(token);
 
   try {
-    console.log('Started refreshing application (/) commands.');
+    console.log(`🚀 Started refreshing ${commands.size} application (/) commands.`);
 
     // Deploy globally (remove guildId parameter for global deployment)
-    await rest.put(
+    const data = await rest.put(
       Routes.applicationCommands(clientId),
       { body: commandData }
-    );
+    ) as any[];
 
-    console.log('Successfully reloaded application (/) commands.');
-    console.log(`Deployed ${commandData.length} commands:`, commandData.map(cmd => cmd.name));
+    console.log(`✅ Successfully reloaded ${data.length} application (/) commands globally.`);
+    console.log('📝 Note: Global commands may take up to 1 hour to appear in all servers.');
+    console.log('Deployed commands:', data.map(cmd => cmd.name).join(', '));
   } catch (error) {
-    console.error('Error deploying commands:', error);
+    console.error('❌ Error deploying commands:', error);
+    process.exit(1);
   }
 }
 
