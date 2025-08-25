@@ -1,0 +1,62 @@
+# Environment Configuration
+.env
+.env.local
+.env.*.local
+
+# Replit Configuration
+.replit
+.local
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime Data
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage and Testing
+coverage/
+.nyc_output
+.coverage
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Local repositories (these are cloned fresh each time)
+public-keys-repo/
+votes-repo/
+
+# Election data files (stored in GitHub, recreated locally)
+elections.json
+users-*.json
+candidates-*.json
+votes-*.json
+
+# Build artifacts
+dist/
+build/

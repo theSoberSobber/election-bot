@@ -1,18 +1,32 @@
 {
-  "name": "workspace",
+  "name": "discord-election-bot",
   "version": "1.0.0",
   "main": "index.js",
+  "description": "A comprehensive Discord election bot with RSA validation and GitHub transparency",
   "scripts": {
+    "start": "node index.js",
+    "deploy-commands": "node deploy-commands.js",
+    "dev": "npm run deploy-commands && npm start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "discord",
+    "bot",
+    "election",
+    "voting",
+    "rsa",
+    "cryptography",
+    "github"
+  ],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "discord.js": "^14.22.1",
     "dotenv": "^17.2.1",
     "node-rsa": "^1.1.1",
     "simple-git": "^3.28.0"
+  },
+  "engines": {
+    "node": ">=16.11.0"
   }
 }

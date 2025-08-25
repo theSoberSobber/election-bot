@@ -1,5 +1,0 @@
-User: mesosan (442234743220600853)
-Election: test
-Timestamp: 2025-08-24T21:14:58.822Z
-Signed Message:
-meow
