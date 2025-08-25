@@ -1,257 +1,244 @@
-# Discord Election Bot
+# ElectionBot
 
-A comprehensive Discord election bot built with Node.js and Discord.js v14. This bot implements a complete election system with RSA key validation, GitHub integration for transparency, voting capabilities, candidate registration, and campaign messaging.
+A Discord bot for running democratic elections with token-based campaign finance using GitHub Gists for persistent storage.
 
 ## Features
 
-- 🗳️ **Multi-Election System**: Create and manage multiple concurrent elections
-- 🔐 **RSA Key Validation**: Secure cryptographic voting with user-submitted public keys
-- 📊 **GitHub Transparency**: All data stored in public GitHub repositories for full transparency
-- 👤 **Candidate Registration**: Users can submit candidacy with emoji, name, and agenda
-- 📢 **Campaign Messaging**: Registered candidates can send campaign messages with voting reactions
-- 🎯 **Role-Based Access**: Admin-only controls for election management
-- ⏰ **Scheduled Elections**: Support for timed elections with start/end dates
+- **Democratic Elections**: Create time-bound elections with multiple parties
+- **Token-Based Finance**: Parties can issue bonds with bonding curve mechanics
+- **Cryptographic Voting**: RSA signature-based vote verification
+- **Campaign System**: Spend campaign funds to promote your party
+- **GitHub Gist Storage**: All data stored remotely in GitHub Gists (no local database)
+- **Party Management**: Create parties, join/leave, manage agendas
+- **Settlement**: Automatic end-of-election token liquidation and fund distribution
 
-## System Architecture
-
-### Three-Repository Structure
-
-1. **Main Bot Repository** (this repo): Contains the bot code and commands
-2. **Public-Keys Repository**: Stores user RSA keys and candidate information
-3. **Votes Repository**: Stores all submitted votes
-
-The bot uses GitHub's REST API to directly manage files in the external repositories **without any local cloning**. This ensures clean deployments and eliminates local storage issues.
-
-### Command Overview
-
-- `/ping` - Test bot responsiveness
-- `/create-election` - [ADMIN] Create new elections with optional timing
-- `/delete-election` - [ADMIN] Delete existing elections
-- `/list-elections` - View all available elections
-- `/submit-key` - Register your RSA public key for an election
-- `/submit-candidate` - Register as a candidate with name, emoji, and agenda
-- `/list-candidates` - View all candidates for an election
-- `/campaign` - Send campaign messages (candidates only)
-- `/vote` - Submit your cryptographically signed vote
-- `/sign-message` - Get information about safely signing messages
-- `/reset-bot` - [ADMIN] Complete system reset
-
-## Setup Instructions
+## Setup
 
 ### Prerequisites
 
-- Node.js 16.11.0 or higher
-- Discord Developer Application with Bot Token
-- GitHub Personal Access Token with repo permissions
-- Two GitHub repositories for data storage
+- Node.js v18+
+- Discord application with bot token
+- GitHub Personal Access Token with gist permissions
 
 ### Installation
 
-1. **Clone this repository**
-   ```bash
-   git clone <your-repo-url>
-   cd discord-election-bot
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Environment Configuration**
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Edit `.env` with your credentials:
-   ```env
-   DISCORD_TOKEN=your_discord_bot_token
-   DISCORD_CLIENT_ID=your_discord_application_id
-   GITHUB_PERSONAL_ACCESS_TOKEN=your_github_token
-   ```
-
-4. **GitHub Repository Setup**
-   
-   Create two repositories on GitHub:
-   - `Public-Keys` - For storing user keys and candidate info
-   - `Votes` - For storing submitted votes
-   
-   Update the repository URLs in the code:
-   - `commands/submit-key.js` - Update `theSoberSobber/Public-Keys`
-   - `commands/submit-candidate.js` - Update `theSoberSobber/Public-Keys`
-   - `commands/vote.js` - Update `theSoberSobber/Votes`
-
-5. **Deploy Discord Commands**
-   ```bash
-   node deploy-commands.js
-   ```
-
-6. **Start the Bot**
-   ```bash
-   node index.js
-   ```
-
-### Discord Setup
-
-1. Create a Discord application at [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create a bot and get the token
-3. Add the bot to your server with required permissions:
-   - Send Messages
-   - Use Slash Commands
-   - Add Reactions
-   - Read Message History
-
-### Required Discord Role
-
-Create a role named `electionBotAdmin` in your Discord server for users who should be able to:
-- Create elections
-- Delete elections
-- Reset the bot system
-
-## Configuration
-
-### GitHub Integration
-
-The bot requires a GitHub Personal Access Token with the following permissions:
-- `repo` (Full control of private repositories)
-- `public_repo` (Access public repositories)
-
-### Repository Structure
-
-**Public-Keys Repository:**
-```
-elections/
-  {election-name}/
-    users/
-      {user-id}/
-        public_key.pem
-        info.json
-    candidates/
-      {user-id}.json
+1. Clone this repository:
+```bash
+git clone <repository-url>
+cd election-bot
 ```
 
-**Votes Repository:**
-```
-elections/
-  {election-name}/
-    votes/
-      {user-id}.txt
+2. Install dependencies:
+```bash
+npm install
 ```
 
-## Usage Guide
+3. Set up environment variables:
+```bash
+cp .env.example .env
+```
 
-### For Administrators
+Edit `.env` with your credentials:
+```env
+DISCORD_TOKEN=your_discord_bot_token_here
+DISCORD_CLIENT_ID=your_discord_client_id_here
+GITHUB_TOKEN=your_github_personal_access_token_here
 
-1. **Create an Election**
-   ```
-   /create-election name:presidential-2024 start:2024-12-01 08:00 duration:7d
-   ```
+# Optional configuration
+DEFAULT_DURATION_HOURS=24
+DEFAULT_ACTIVITY_WINDOW_HOURS=24
+DEFAULT_ACTIVITY_POOL_COINS=50
+MICROCOINS_PER_COIN=1000000
+DEFAULT_ON_EMPTY_PARTY_VAULT=burn
+```
 
-2. **Monitor Elections**
-   ```
-   /list-elections
-   ```
+4. Build the project:
+```bash
+npm run build
+```
 
-3. **Clean Up**
-   ```
-   /delete-election name:old-election
-   /reset-bot confirm:RESET-EVERYTHING  # Full system reset
-   ```
+5. Deploy slash commands:
+```bash
+npm run deploy-commands
+```
 
-### For Users
+6. Start the bot:
+```bash
+npm start
+```
 
-1. **Register to Vote**
-   ```
-   /submit-key election:presidential-2024 publickey:[your-rsa-public-key]
-   ```
+## Usage
 
-2. **Run for Office**
-   ```
-   /submit-candidate election:presidential-2024 name:"John Doe" emoji:🎯 agenda:"My platform"
-   ```
+### Server Setup
 
-3. **Campaign**
-   ```
-   /campaign election:presidential-2024 message:"Vote for me!"
-   ```
+1. Create a role named exactly `electionBotAdmin` in your Discord server
+2. Assign this role to users who should be able to create/delete elections
 
-4. **Vote**
-   ```
-   /vote election:presidential-2024 signed-message:[your-signed-message]
-   ```
+### Commands
 
-## Security Features
+#### Election Management (Admin Only)
+- `/create [start] [duration]` - Create a new election
+- `/delete` - Delete the current election
+- `/listparties` - List all parties in current election
 
-- **Cryptographic Voting**: Uses RSA signatures for vote authenticity
-- **GitHub Transparency**: All data publicly viewable on GitHub
-- **Role-Based Access**: Admin functions restricted to authorized users
-- **Remote-Only Operations**: No local repository cloning - works entirely via GitHub API
-- **Transactional Operations**: GitHub operations must succeed before local storage
+#### Party Management
+- `/createparty <name> <emoji> <agenda>` - Create a political party
+- `/joinparty <party>` - Request to join a party (requires leader approval)
+- `/createbonds <party> <amount> <tokens> <alpha>` - Issue bonds for your party
+
+#### Voting & Participation
+- `/register <publickey>` - Register RSA public key for voting
+- `/vote <party> <message> <signature>` - Cast your vote (requires RSA signature)
+- `/buybonds <party> <coins>` - Buy party bonds
+- `/campaign <party> <headline> <body>` - Create campaign post (costs party funds)
+
+### Bond Economics
+
+The bot implements a **constant product bonding curve** for party financing:
+
+- **Initial Setup**: Party leader commits P coins and issues N tokens → `k = P × N`
+- **Token Price**: Current price = `k ÷ remaining_tokens`
+- **Purchase Split**: When buying with coins, `alpha` portion goes to pool, `(1-alpha)` goes to vault
+- **Pool**: Used for token price discovery
+- **Vault**: Accumulated campaign funds, distributed to members at election end
+
+### Settlement Process
+
+When an election ends:
+
+1. **Pool Merger**: All party bond pools are combined
+2. **Winner Price**: `final_price = combined_pool ÷ winning_party_issued_tokens`
+3. **Token Liquidation**: Winning token holders get `tokens × final_price`
+4. **Unsold Tokens**: Added to winning party's vault at final price
+5. **Vault Distribution**: Each party's vault split equally among members
+6. **Losing Tokens**: Become worthless
+
+### Data Storage
+
+All data is stored in **GitHub Gists**:
+
+- **Public Gist** (`public.json`): Election state, parties, balances, registrations
+- **Private Gist** (`private_votes.json`): Votes (kept secret until election ends)
+- **Gist Index**: Maps Discord servers to their election gists
+
+### Money Supply
+
+- **Base Balance**: Every user starts with 100 coins
+- **Activity Rewards**: Optional periodic distribution based on message activity
+- **Bond Trading**: Zero-sum between users
+- **Campaign Spending**: Burns coins from party vaults
+
+Configure activity rewards:
+- Set `DEFAULT_ACTIVITY_POOL_COINS=0` to disable minting
+- Use `systemReserve` mode to distribute from fixed pool instead of minting
+
+### RSA Signature Voting
+
+To vote, users must:
+
+1. Generate RSA key pair
+2. Register public key with `/register`
+3. Sign party name with private key
+4. Submit vote with `/vote <party> <party> <signature>`
+
+Example with OpenSSL:
+```bash
+# Generate key pair
+openssl genrsa -out private.pem 2048
+openssl rsa -in private.pem -pubout -out public.pem
+
+# Sign message
+echo -n "PartyName" | openssl dgst -sha256 -sign private.pem | base64
+```
+
+## Security Considerations
+
+- **Gist Privacy**: Private gists are "secret" but not encrypted. Vote confidentiality depends on gist URL secrecy
+- **Admin Role**: `electionBotAdmin` role has full election control
+- **RSA Keys**: Users must keep private keys secure; no key recovery mechanism
+- **Rate Limits**: GitHub API limits may affect high-activity servers
+- **Atomic Updates**: Uses optimistic locking to prevent race conditions in gist updates
 
 ## Development
+
+### Running Tests
+
+```bash
+npm test
+```
+
+### Development Mode
+
+```bash
+npm run dev
+```
 
 ### Project Structure
 
 ```
-├── commands/           # Slash command implementations
-├── index.js           # Main bot file
-├── deploy-commands.js # Command deployment script
-├── package.json       # Dependencies and scripts
-├── .env.example       # Environment template
-└── .gitignore        # Git ignore rules
+src/
+├── index.ts              # Bot entry point
+├── types.ts              # TypeScript type definitions
+├── commands/             # Slash command implementations
+│   ├── createElection.ts
+│   ├── createParty.ts
+│   ├── vote.ts
+│   └── ...
+├── storage/
+│   └── github.ts         # GitHub Gist storage wrapper
+├── economy/
+│   ├── bonds.ts          # Bonding curve mathematics
+│   └── settlement.ts     # End-of-election settlement
+└── utils/
+    ├── crypto.ts         # RSA signature verification
+    ├── permissions.ts    # Role-based access control
+    └── numbers.ts        # Safe decimal arithmetic
 ```
 
-### Adding New Commands
+## Configuration Options
 
-1. Create a new file in the `commands/` directory
-2. Export an object with `data` and `execute` properties
-3. Re-run `deploy-commands.js` to register with Discord
+Environment variables:
 
-### Local Development
-
-The bot works entirely through GitHub's REST API and maintains minimal local state:
-- Local JSON files for quick command responses (these are excluded from git)
-- No local repository clones needed
-- Clean deployments with no repository management overhead
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DEFAULT_DURATION_HOURS` | 24 | Default election duration |
+| `DEFAULT_ACTIVITY_WINDOW_HOURS` | 24 | Activity tracking window |
+| `DEFAULT_ACTIVITY_POOL_COINS` | 50 | Coins per activity period |
+| `MICROCOINS_PER_COIN` | 1000000 | Internal precision (1 coin = 1M microcoins) |
+| `DEFAULT_ON_EMPTY_PARTY_VAULT` | burn | What to do with empty party vaults |
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **GitHub Authentication Errors**
-   - Verify your `GITHUB_PERSONAL_ACCESS_TOKEN` has correct permissions
-   - Check that the repositories exist and are accessible
-
-2. **Discord Command Not Appearing**
-   - Global commands take up to 1 hour to propagate
-   - Use guild-specific commands for faster testing
-
-3. **Bot Not Responding**
-   - Check the console for error messages
-   - Verify all environment variables are set correctly
+1. **Commands not appearing**: Run `npm run deploy-commands`
+2. **Permission denied**: Ensure user has `electionBotAdmin` role
+3. **GitHub API errors**: Check token permissions and rate limits
+4. **Invalid signatures**: Verify RSA key format and signing process
 
 ### Logs
 
-The bot provides comprehensive logging for all operations. Check the console output for:
-- Command executions
-- GitHub operations
-- Error details and suggestions
+The bot logs important events to console. Check for:
+- GitHub API errors
+- Signature verification failures
+- Gist update conflicts
+- Command execution errors
+
+## License
+
+MIT License - see LICENSE file for details.
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
+3. Add tests for new functionality
+4. Ensure all tests pass
 5. Submit a pull request
-
-## License
-
-This project is licensed under the ISC License - see the package.json file for details.
 
 ## Support
 
 For issues and questions:
-1. Check the troubleshooting section
-2. Review console logs for detailed error messages
-3. Create an issue on GitHub with relevant log output
+1. Check the troubleshooting section above
+2. Review bot logs for error messages
+3. Create an issue in the repository
